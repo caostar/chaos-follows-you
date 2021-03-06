@@ -124,7 +124,7 @@ export class PixiChaosStar extends PIXI.Container{
     getRandomValues(texture){
 		let _baseSize = Math.random()*25+15;
 		//
-		let _barWidth = Math.random()*1+1; 
+		let _barWidth = Math.random()*1; 
 		//
 		let _barLength = Math.random()*5+3.2; 
 		//
@@ -132,12 +132,12 @@ export class PixiChaosStar extends PIXI.Container{
 		let _arrowTopSharpness = Math.random()*2+1; 
 		//
 		//let _arrowBottonSharpness = Math.random()*1; 
-		let _arrowBottonSharpness = Math.random()*0.3; 
+		let _arrowBottonSharpness = Math.random()*3; 
 		//
 		//let _arrowWidth = Math.random()*1.5+1;
-		let _arrowWidth = Math.random()*4+3;
+		let _arrowWidth = Math.random()*3+2;
 		//	
-		let _circleSize = Math.random()*30+65;
+		let _circleSize = Math.random()*30+25;
 		//
 		let _globalColor = Math.floor(Math.random()*16777215);
 		//
