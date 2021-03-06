@@ -105,7 +105,7 @@ export default class Play extends Scene {
     this.emitter.emit = true;
 
     // Start the update
-    //this.update();  
+    this.update();  
 
     //mouse function 
     const canvas = document.getElementsByTagName("canvas")[0];
