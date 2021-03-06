@@ -17,17 +17,11 @@ export class PixiChaosStar extends PIXI.Container{
         
     }
 
-    drawStar(context, angle, barWidth, barLength, arrowTopSharpness, arrowBottonSharpness, arrowWidth, circleSize, _color, texture) {
+    drawStar(context, angle, barWidth, barLength, arrowTopSharpness, arrowBottonSharpness, arrowWidth, circleSize, _color) {
         context.clear();
         let sizeLimit = (barLength+arrowTopSharpness+circleSize)*2;
-        let toScale = this.starWidth/sizeLimit;
-        console.log("sizeLimit: ", sizeLimit, "toScale: ", toScale);
-        let textureMatrix = new PIXI.Matrix()
-        if(texture){
-            context.beginTextureFill({texture:texture, matrix: textureMatrix});
-        }else{
-            context.beginFill(_color || 0xFFFFFF, 1);
-        }
+        
+        context.beginFill(_color || 0xFFFFFF, 1);
 
         //the beggining of the arrow, touching the circle
         let arrowStartPoint = Math.sqrt( Math.pow(circleSize,2) - Math.pow(barWidth/2, 2) );
@@ -101,8 +95,6 @@ export class PixiChaosStar extends PIXI.Container{
     createCaostar(baseSize, angle, barWidth, barLength, arrowTopSharpness, arrowBottonSharpness, arrowWidth, circleSize, globalColor,texture){
 
 		this.drawStar(this.theStarGraphic, angle, barWidth*baseSize, barLength*baseSize, arrowTopSharpness*baseSize, arrowBottonSharpness*baseSize, arrowWidth*baseSize, circleSize, globalColor);
-        console.log("graphci widht and height: ", this.theStarGraphic.width,this.theStarGraphic.height);
-        if(texture)console.log("square texture widht and height: ", texture.width,texture.height);
         this.theStarGraphic.width = this.starWidth;
         this.theStarGraphic.height = this.starHeight;
 		if(!this.isvector){
@@ -113,34 +105,17 @@ export class PixiChaosStar extends PIXI.Container{
 //
 //UNDER BUG
     changeStarTexture (texture){
-        //this.starTexture.destroy(true);
-        
-        /* try{
-            this.starTexture = renderer.generateTexture(this.theStarGraphic,PIXI.SCALE_MODES.LINEAR,window.devicePixelRatio || 1);
-        }catch(error){}
-        console.log("star texture widht and height: ", this.starTexture.width,this.starTexture.height);
-        this.addChild(this.starBMP);
-        //this.addChild(this.theStarGraphic);
-        if(texture)this.starBMP.texture = this.starTexture ;
-        this.starBMP.width = this.starWidth;
-        this.starBMP.height = this.starHeight;
-        this.starBMP.x = -this.starWidth/2;
-        this.starBMP.y = -this.starHeight/2; */
-
         this.addChild(this.starBMP);
         this.addChild(this.theStarGraphic);
         this.starBMP.x = -this.starWidth/2;
         this.starBMP.y = -this.starHeight/2;
         this.starBMP.width = this.starWidth;
         this.starBMP.height = this.starHeight;
-        //this.starBMP.pivot.set(-this.starWidth/2);
         
         this.starBMP.texture = texture;
         this.starBMP.mask = this.theStarGraphic;
         //
-
         this.starTexture = renderer.generateTexture(this,PIXI.SCALE_MODES.LINEAR,window.devicePixelRatio || 1);
-
     }
     
     //
