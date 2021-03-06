@@ -8,10 +8,7 @@ export class PixiChaosStar extends PIXI.Container{
         this.starHeight = _starHeight;
         //
         this.theStarGraphic = new PIXI.Graphics();
-        //
         this.starBMP = new PIXI.Sprite();
-        this.dummy = new PIXI.Sprite();
-        this.addChild(this.dummy);
 
         //this.isvector ? this.addChild(this.theStarGraphic) : this.addChild(this.starBMP);
         //this.changeStarTexture ();
@@ -21,8 +18,11 @@ export class PixiChaosStar extends PIXI.Container{
 
     drawStar(context, angle, barWidth, barLength, arrowTopSharpness, arrowBottonSharpness, arrowWidth, circleSize, _color, texture) {
         context.clear();
-        //context.beginFill(_color, 1);
-        context.beginTextureFill({texture:texture});
+        if(texture){
+            context.beginTextureFill({texture:texture});
+        }else{
+            context.beginFill(_color || 0xFFFFFF, 1);
+        }
 
         //the beggining of the arrow, touching the circle
         let arrowStartPoint = Math.sqrt( Math.pow(circleSize,2) - Math.pow(barWidth/2, 2) );
@@ -96,49 +96,33 @@ export class PixiChaosStar extends PIXI.Container{
     createCaostar(baseSize, angle, barWidth, barLength, arrowTopSharpness, arrowBottonSharpness, arrowWidth, circleSize, globalColor,texture){
 
 		this.drawStar(this.theStarGraphic, angle, barWidth*baseSize, barLength*baseSize, arrowTopSharpness*baseSize, arrowBottonSharpness*baseSize, arrowWidth*baseSize, circleSize, globalColor, texture);
+        console.log("graphci widht and height: ", this.theStarGraphic.width,this.theStarGraphic.height);
+        if(texture)console.log("square texture widht and height: ", texture.width,texture.height);
         this.theStarGraphic.width = this.starWidth;
         this.theStarGraphic.height = this.starHeight;
 		if(!this.isvector){
-            if(texture){
-                this.changeStarTexture(texture)
-            };
-            this.pushStarBitmap(texture);
+            this.changeStarTexture()
         } 
     //end of function
     }
 //
 //UNDER BUG
-    pushStarBitmap (texture){
+    changeStarTexture (){
         //this.starTexture.destroy(true);
         
         try{
             this.starTexture = renderer.generateTexture(this.theStarGraphic,PIXI.SCALE_MODES.LINEAR,window.devicePixelRatio || 1);
-        }catch(error){
-        }
-        this.dummy.texture = this.starTexture;
-
-        /* //this.starTexture = renderer.generateTexture(this.theStarGraphic,PIXI.SCALE_MODES.LINEAR,window.devicePixelRatio || 1);
-        this.starTexture = renderer.generateTexture(this.starBMP,PIXI.SCALE_MODES.LINEAR,window.devicePixelRatio || 1);
-        //https://www.pixiplayground.com/#/edit/XWQP2rDIDQgi7SO_tawZA
-        this.dummy.texture = this.starTexture;
-        //this.dummy.width = 1256;
-        //this.dummy.height = 1256; */
+        }catch(error){}
+        console.log("star texture widht and height: ", this.starTexture.width,this.starTexture.height);
+        this.addChild(this.starBMP);
+        this.starBMP.texture = this.starTexture ;
+        this.starBMP.width = this.starWidth;
+        this.starBMP.height = this.starHeight;
+        this.starBMP.x = -this.starWidth/2;
+        this.starBMP.y = -this.starHeight/2;
 
     }
-    changeStarTexture (texture){
-        //this.addChild(this.starBMP);
-        this.starBMP.texture = texture;
-        this.starBMP.width = this.theStarGraphic.width;
-        this.starBMP.height = this.theStarGraphic.height;
-        this.starBMP.x = -this.theStarGraphic.width/2;
-        this.starBMP.y = -this.theStarGraphic.height/2;
-        //this.starBMP.width = this.theStarGraphic.width;
-        //this.starBMP.height = this.theStarGraphic.height;
-        //this.theStarGraphic.x = this.theStarGraphic.width/2;
-        //this.theStarGraphic.y = this.theStarGraphic.height/2;
-        //this.addChild(this.theStarGraphic);
-        //this.starBMP.mask = this.theStarGraphic;
-    }
+    
     //
     getRandomValues(texture){
 		let _baseSize = Math.random()*25+15;
