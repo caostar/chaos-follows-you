@@ -26,12 +26,6 @@ export default class Splash extends Scene {
 
   preload() {
     const images = {
-      thanaterosMagenta: Assets.images.thanaterosMagenta,
-      caostar1: Assets.images.caostar1,
-      caostar2: Assets.images.caostar2,
-      caostar3: Assets.images.caostar3,
-      caostar4: Assets.images.caostar4,
-      caostar5: Assets.images.caostar5,
       texture1: Assets.images["textures/colors/1"],
       texture2: Assets.images["textures/colors/2"],
       texture3: Assets.images["textures/colors/3"],

@@ -7,8 +7,7 @@ import Assets from '../core/AssetManager';
 
 export default class Play extends Scene {
   async onCreated() {
-    this.starsArraySize = 5;
-
+    this.currentTexture;
     //const particleName = 'thanaterosMagenta';
 
     // create a sprite with the gamepad asset as texture and add it to the stage
@@ -135,7 +134,6 @@ export default class Play extends Scene {
     canvas.addEventListener('mousedown', (e) =>
     {
         if (!this.emitter) return;
-        //this.emitter.particleImages = [PIXI.Texture.from(this.getRandomTexture())];
         this.newChaos();
     });
 /////////////
@@ -176,7 +174,8 @@ export default class Play extends Scene {
     let textureArraySize = 10;
     let assetBaseName = 'texture'
     let texture = `${assetBaseName}${Math.floor(Math.random() * textureArraySize) + 1}`;
-    return PIXI.Texture.from(texture)
+    this.currentTexture = PIXI.Texture.from(texture);
+    return this.currentTexture
   }
 
   getRandomPixiCaostarTexture(){

@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import { Sprite } from 'pixi.js';
 
 export class PixiChaosStar extends PIXI.Container{
     constructor(_starWidth,_starHeight,_isvector){

@@ -1,5 +1,5 @@
 {
-  "name": "Thanaterotica",
+  "name": "ChaosFollowsYou",
   "version": "0.0.1",
   "description": "",
   "main": "src/index.js",
@@ -34,6 +34,6 @@
     "pixi-viewport": "^4.21.1",
     "pixi.js": "^6.0.0"
   },
-  "author": "Dopamine Ltd.",
+  "author": "Caostar",
   "license": "Apache-2.0"
 }
