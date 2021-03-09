@@ -109,7 +109,9 @@ export default class Play extends Scene {
     canvas.addEventListener('mousemove', (e) =>
     {
         if (!this.emitter) return;
-        gsap.to(this.emitter.spawnPos, { x:e.offsetX -canvas.width/2, y:e.offsetY -canvas.height/2, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
+        let goX = (e.offsetX -viewport.lastViewport.x)/window.viewport.lastViewport.scaleX;
+        let goY = (e.offsetY -viewport.lastViewport.y)/window.viewport.lastViewport.scaleY;
+        gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
 
     });
     canvas.addEventListener('touchmove', (e) =>
@@ -117,7 +119,11 @@ export default class Play extends Scene {
         if (!this.emitter) return;
         e.offsetX = e.touches[0].pageX - e.touches[0].target.offsetLeft;     
         e.offsetY = e.touches[0].pageY - e.touches[0].target.offsetTop;
-        gsap.to(this.emitter.spawnPos, { x:e.offsetX -canvas.width/2, y:e.offsetY -canvas.height/2, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
+
+        let goX = (e.offsetX -viewport.lastViewport.x)/window.viewport.lastViewport.scaleX;
+        let goY = (e.offsetY -viewport.lastViewport.y)/window.viewport.lastViewport.scaleY;
+
+        gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
 
     });
     canvas.addEventListener('mouseout', (e) =>

@@ -11,7 +11,7 @@ export default {
   game: {
     width: 1000,
     height: 500,
-    drag: false,
+    drag: true,
     pinch: true,
     decelerate: true,
     wheel: true,

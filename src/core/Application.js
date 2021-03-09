@@ -61,12 +61,17 @@ export default class GameApplication extends Application {
 
     this.stage.addChild(viewport);
 
-    if (this.config.game.drag) viewport.drag();
+
+
+    if (!this.isTouchDevice()) viewport.drag();
     if (this.config.game.pinch) viewport.pinch();
     if (this.config.game.wheel) viewport.wheel();
     if (this.config.game.decelerate) viewport.decelerate();
+    const canvas = document.getElementsByTagName("canvas")[0];
+    viewport.on('moved-end', (e) => console.log(viewport.lastViewport.x, canvas.width))
 
     this.viewport = viewport;
+    window.viewport = viewport;
   }
 
   /**
@@ -84,6 +89,12 @@ export default class GameApplication extends Application {
       this.viewport.x = width / 2;
       this.viewport.y = height / 2;
     }
+  }
+
+  isTouchDevice() {
+    return (('ontouchstart' in window) ||
+       (navigator.maxTouchPoints > 0) ||
+       (navigator.msMaxTouchPoints > 0));
   }
 
   /**
