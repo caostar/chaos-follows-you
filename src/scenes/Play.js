@@ -114,11 +114,6 @@ export default class Play extends Scene {
     });
     canvas.addEventListener('touchmove', (e) =>
     {
-        /* if (!this.emitter) return;
-        e.offsetX = e.touches[0].pageX - e.touches[0].target.offsetLeft;     
-        e.offsetY = e.touches[0].pageY - e.touches[0].target.offsetTop;
-        this.emitter.updateOwnerPos(e.offsetX -canvas.width/2, e.offsetY -canvas.height/2); */
-
         if (!this.emitter) return;
         e.offsetX = e.touches[0].pageX - e.touches[0].target.offsetLeft;     
         e.offsetY = e.touches[0].pageY - e.touches[0].target.offsetTop;
@@ -128,7 +123,6 @@ export default class Play extends Scene {
     canvas.addEventListener('mouseout', (e) =>
     {
         if (!this.emitter) return;
-        //this.emitter.updateOwnerPos(0, 0);
         gsap.to(this.emitter.spawnPos, { x:0, y:0, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
     });
     canvas.addEventListener('mousedown', (e) =>
