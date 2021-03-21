@@ -171,7 +171,7 @@ export default class Play extends Scene {
   }
 
   getRandomTexture(){
-    let textureArraySize = 10;
+    let textureArraySize = Object.keys(Assets.textures).length;
     let assetBaseName = 'texture'
     let texture = `${assetBaseName}${Math.floor(Math.random() * textureArraySize) + 1}`;
     this.currentTexture = PIXI.Texture.from(texture);

@@ -20,6 +20,7 @@ class AssetManager {
     this._assets = {};
     this._sounds = {};
     this._images = {};
+    this._textures = {};
 
     this._importAssets();
   }
@@ -137,6 +138,16 @@ class AssetManager {
    */
   get assets() {
     return this._assets;
+  }
+
+  /**
+   * Get number of textures
+   */
+  get textures() {
+    return this._textures;
+  }
+  set textures(obj) {
+    this._textures = obj;
   }
 
   _loadSound(id, url) {

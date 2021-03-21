@@ -25,18 +25,19 @@ export default class Splash extends Scene {
   }
 
   preload() {
-    const images = {
-      texture1: Assets.images["textures/colors/1"],
-      texture2: Assets.images["textures/colors/2"],
-      texture3: Assets.images["textures/colors/3"],
-      texture4: Assets.images["textures/colors/4"],
-      texture5: Assets.images["textures/colors/5"],
-      texture6: Assets.images["textures/colors/6"],
-      texture7: Assets.images["textures/colors/7"],
-      texture8: Assets.images["textures/colors/8"],
-      texture9: Assets.images["textures/colors/9"],
-      texture10: Assets.images["textures/colors/10"],
+    let images = {
     };
+
+    let textureIndex = 0;
+    for (let [key, value] of Object.entries(Assets.images)) {
+      if(key.indexOf('texture') != -1){
+        textureIndex++;
+        images[`texture${textureIndex}`] = value
+      }
+    }
+
+    Assets.textures = images
+
     const sounds = {
       
     };

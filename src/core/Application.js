@@ -68,7 +68,7 @@ export default class GameApplication extends Application {
     if (this.config.game.wheel) viewport.wheel();
     if (this.config.game.decelerate) viewport.decelerate();
     const canvas = document.getElementsByTagName("canvas")[0];
-    viewport.on('moved-end', (e) => console.log(viewport.lastViewport.x, canvas.width))
+    //viewport.on('moved-end', (e) => console.log(viewport.lastViewport.x, canvas.width))
 
     this.viewport = viewport;
     window.viewport = viewport;

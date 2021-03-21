@@ -106,6 +106,9 @@ export class PixiChaosStar extends PIXI.Container{
 //
 //UNDER BUG
     changeStarTexture (texture){
+        //https://stackoverflow.com/questions/64720629/pixijs-rendertexture-anti-aliasing
+        //renderTextureSprite.filters = [new PIXI.filters.FXAAFilter()];
+        //cache the graphich as bitmap
         this.addChild(this.starBMP);
         this.addChild(this.theStarGraphic);
         this.starBMP.x = -this.starWidth/2;
