@@ -21,25 +21,26 @@ export default class Splash extends Scene {
   }
 
   get finish() {
-    return new Promise((res)=>setTimeout(res, this.config.hideDelay))
+    return new Promise((res) => setTimeout(res, this.config.hideDelay));
   }
 
   preload() {
-    let images = {
+    const images = {
     };
 
     let textureIndex = 0;
-    for (let [key, value] of Object.entries(Assets.images)) {
-      if(key.indexOf('texture') != -1){
+
+    for (const [key, value] of Object.entries(Assets.images)) {
+      if (key.indexOf('texture') != -1) {
         textureIndex++;
-        images[`texture${textureIndex}`] = value
+        images[`texture${textureIndex}`] = value;
       }
     }
 
-    Assets.textures = images
+    Assets.textures = images;
 
     const sounds = {
-      
+
     };
 
     return super.preload({ images, sounds });

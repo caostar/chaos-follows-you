@@ -61,14 +61,12 @@ export default class GameApplication extends Application {
 
     this.stage.addChild(viewport);
 
-
-
     if (!this.isTouchDevice()) viewport.drag();
     if (this.config.game.pinch) viewport.pinch();
     if (this.config.game.wheel) viewport.wheel();
     if (this.config.game.decelerate) viewport.decelerate();
-    const canvas = document.getElementsByTagName("canvas")[0];
-    //viewport.on('moved-end', (e) => console.log(viewport.lastViewport.x, canvas.width))
+    const canvas = document.getElementsByTagName('canvas')[0];
+    // viewport.on('moved-end', (e) => console.log(viewport.lastViewport.x, canvas.width))
 
     this.viewport = viewport;
     window.viewport = viewport;
@@ -92,9 +90,9 @@ export default class GameApplication extends Application {
   }
 
   isTouchDevice() {
-    return (('ontouchstart' in window) ||
-       (navigator.maxTouchPoints > 0) ||
-       (navigator.msMaxTouchPoints > 0));
+    return (('ontouchstart' in window)
+       || (navigator.maxTouchPoints > 0)
+       || (navigator.msMaxTouchPoints > 0));
   }
 
   /**
