@@ -4,10 +4,13 @@ import gsap from 'gsap';
 import * as particles from 'pixi-particles';
 import {PixiChaosStar} from '../builders/PixiChaosStar';
 import Assets from '../core/AssetManager';
+import keyboardjs from 'keyboardjs';
 
 export default class Play extends Scene {
   async onCreated() {
     this.currentTexture;
+    this.moveSpeed = 0.5;
+    this.movePad = 100;
     //const particleName = 'thanaterosMagenta';
 
     // create a sprite with the gamepad asset as texture and add it to the stage
@@ -129,14 +132,80 @@ export default class Play extends Scene {
     canvas.addEventListener('mouseout', (e) =>
     {
         if (!this.emitter) return;
-        gsap.to(this.emitter.spawnPos, { x:0, y:0, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
+        let goX = (window.innerWidth/2 -viewport.lastViewport.x)/window.viewport.lastViewport.scaleX;
+        let goY = (window.innerHeight/2 -viewport.lastViewport.y)/window.viewport.lastViewport.scaleY;
+        gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
     });
     canvas.addEventListener('mousedown', (e) =>
     {
         if (!this.emitter) return;
         this.newChaos();
     });
-/////////////
+    /////////////
+    keyboardjs.bind('r', (e) => {
+      if (!this.emitter) return;
+      let goX = (Math.random()*window.innerWidth -viewport.lastViewport.x)/window.viewport.lastViewport.scaleX;
+      let goY = (Math.random()*window.innerHeight -viewport.lastViewport.y)/window.viewport.lastViewport.scaleY;
+      gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: 2, ease: "power2.out", onComplete:this.completeEmitterTween()});
+      viewport.animate({
+             time: 500,                     // time to animate
+        //     position: [300,300],                 // position to move viewport
+             scale: 0.5,                    // scale to change zoom(scale.x = scale.y)
+        //     ease: 'linear',                 // easing function to use
+        //     callbackOnComplete: null,       // callback when animate is complete
+             removeOnInterrupt: true,	   // removes this plugin if interrupted by any user input
+         })
+    });
+    keyboardjs.bind('space', (e) => {
+      if (!this.emitter) return;
+        this.newChaos();
+    });
+    keyboardjs.bind('left', (e) => {
+      if (!this.emitter) return;
+      let go = this.emitter.spawnPos.x-this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:go, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('right', (e) => {
+      if (!this.emitter) return;
+      let go = this.emitter.spawnPos.x+this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:go, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('up', (e) => {
+      if (!this.emitter) return;
+      let go = this.emitter.spawnPos.y-this.movePad;
+      gsap.to(this.emitter.spawnPos, { y:go, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('down', (e) => {
+      if (!this.emitter) return;
+      let go = this.emitter.spawnPos.y+this.movePad;
+      gsap.to(this.emitter.spawnPos, { y:go, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    //
+    keyboardjs.bind('right + up', (e) => {
+      if (!this.emitter) return;
+      let goX = this.emitter.spawnPos.x+this.movePad;
+      let goY = this.emitter.spawnPos.y-this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('right + down', (e) => {
+      if (!this.emitter) return;
+      let goX = this.emitter.spawnPos.x+this.movePad;
+      let goY = this.emitter.spawnPos.y+this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('left + up', (e) => {
+      if (!this.emitter) return;
+      let goX = this.emitter.spawnPos.x-this.movePad;
+      let goY = this.emitter.spawnPos.y-this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    keyboardjs.bind('left + down', (e) => {
+      if (!this.emitter) return;
+      let goX = this.emitter.spawnPos.x-this.movePad;
+      let goY = this.emitter.spawnPos.y+this.movePad;
+      gsap.to(this.emitter.spawnPos, { x:goX, y:goY, duration: this.moveSpeed, ease: "power2.out", onComplete:this.completeEmitterTween()});
+    });
+    
 
   }
 
