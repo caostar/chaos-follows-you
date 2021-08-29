@@ -144,17 +144,18 @@ export default class Play extends Scene {
       if (!this.emitter) return;
       const goX = (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
       const goY = (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
+      const zoom = Math.random();
 
       gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
     });
     //zoom in
     keyboardjs.bind('z', (e) => {
       if (!this.emitter) return;
-      console.log(viewport.lastViewport.scaleX)
+      console.log(viewport.lastViewport.scaleX);
       viewport.animate({
         time: 500, // time to animate
         //     position: [300,300],                 // position to move viewport
-        scale: viewport.lastViewport.scaleX+0.1, // scale to change zoom(scale.x = scale.y)
+        scale: viewport.lastViewport.scaleX*2, // scale to change zoom(scale.x = scale.y)
         //     ease: 'linear',                 // easing function to use
         //     callbackOnComplete: null,       // callback when animate is complete
         removeOnInterrupt: true, // removes this plugin if interrupted by any user input
@@ -163,11 +164,12 @@ export default class Play extends Scene {
     //zoom out
     keyboardjs.bind('x', (e) => {
       if (!this.emitter) return;
-      console.log(viewport.lastViewport.scaleX)
+      console.log(viewport.lastViewport.scaleX);
+      //precisa travar antes de zero e diminuir aos poucos
       viewport.animate({
         time: 500, // time to animate
         //     position: [300,300],                 // position to move viewport
-        scale: viewport.lastViewport.scaleX-0.1, // scale to change zoom(scale.x = scale.y)
+        scale: viewport.lastViewport.scaleX/2, // scale to change zoom(scale.x = scale.y)
         //     ease: 'linear',                 // easing function to use
         //     callbackOnComplete: null,       // callback when animate is complete
         removeOnInterrupt: true, // removes this plugin if interrupted by any user input
