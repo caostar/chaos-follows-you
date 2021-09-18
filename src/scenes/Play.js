@@ -151,12 +151,13 @@ export default class Play extends Scene {
     //zoom in
     keyboardjs.bind('z', (e) => {
       if (!this.emitter) return;
-      console.log(viewport.lastViewport.scaleX);
+      window.viewport = viewport;
+      console.log(viewport.lastViewport);
       viewport.animate({
         time: 500, // time to animate
-        //     position: [300,300],                 // position to move viewport
-        scale: viewport.lastViewport.scaleX*2, // scale to change zoom(scale.x = scale.y)
-        //     ease: 'linear',                 // easing function to use
+        position: {x: (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX, y: (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY},                 // position to move viewport
+        scale: viewport.lastViewport.scaleX*(Math.random()*4+1), // scale to change zoom(scale.x = scale.y)
+        ease: 'easeOutCirc',                 // easing function to use
         //     callbackOnComplete: null,       // callback when animate is complete
         removeOnInterrupt: true, // removes this plugin if interrupted by any user input
       });
@@ -164,13 +165,13 @@ export default class Play extends Scene {
     //zoom out
     keyboardjs.bind('x', (e) => {
       if (!this.emitter) return;
-      console.log(viewport.lastViewport.scaleX);
+      console.log(viewport.lastViewport);
       //precisa travar antes de zero e diminuir aos poucos
       viewport.animate({
         time: 500, // time to animate
-        //     position: [300,300],                 // position to move viewport
-        scale: viewport.lastViewport.scaleX/2, // scale to change zoom(scale.x = scale.y)
-        //     ease: 'linear',                 // easing function to use
+        position: {x: (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX, y: (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY},                 // position to move viewport
+        scale: viewport.lastViewport.scaleX/(Math.random()*4+1), // scale to change zoom(scale.x = scale.y)
+        ease: 'easeOutCirc',                 // easing function to use
         //     callbackOnComplete: null,       // callback when animate is complete
         removeOnInterrupt: true, // removes this plugin if interrupted by any user input
       });
