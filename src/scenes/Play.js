@@ -145,11 +145,22 @@ export default class Play extends Scene {
     });
     // zoom in
     keyboardjs.bind('z', (e) => {
-      this.goZoom(this.getRandomEmitterX(), this.getRandomEmitterY(), viewport.lastViewport.scaleX * (Math.random() * 4 + 1));
+      const zoomFactor = (Math.random() * 4 + 1);
+      const zoom = viewport.lastViewport.scaleX * zoomFactor;
+
+      const randX = (Math.random() * 500 - 1000);
+      const randY = (Math.random() * 500 - 1000);
+
+      this.goZoom(randX, randY, zoom);
     });
     // zoom out
     keyboardjs.bind('x', (e) => {
-      this.goZoom(this.getRandomEmitterX(), this.getRandomEmitterY(), viewport.lastViewport.scaleX / (Math.random() * 4 + 1));
+      const zoomFactor = (Math.random() * 4 + 1);
+      const zoom = viewport.lastViewport.scaleX / zoomFactor;
+      const randX = (Math.random() * 500 - 1000);
+      const randY = (Math.random() * 500 - 1000);
+
+      this.goZoom(randX, randY, zoom);
     });
     keyboardjs.bind('space', (e) => {
       if (!this.emitter) return;
@@ -184,6 +195,7 @@ export default class Play extends Scene {
 
   goZoom(x, y, scale) {
     if (!this.emitter) return;
+    console.log(viewport);
     viewport.animate({
       time: 500, // time to animate
       position: { x, y }, // position to move viewport
