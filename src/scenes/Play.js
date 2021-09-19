@@ -141,26 +141,15 @@ export default class Play extends Scene {
     // ///////////
     // random move
     keyboardjs.bind('r', (e) => {
-      this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
+      this.moveEmitterRandomly();
     });
     // zoom in
     keyboardjs.bind('z', (e) => {
-      const zoomFactor = (Math.random() * 4 + 1);
-      const zoom = viewport.lastViewport.scaleX * zoomFactor;
-
-      const randX = (Math.random() * 500 - 1000);
-      const randY = (Math.random() * 500 - 1000);
-
-      this.goZoom(randX, randY, zoom);
+      this.goRandZoom('in');
     });
     // zoom out
     keyboardjs.bind('x', (e) => {
-      const zoomFactor = (Math.random() * 4 + 1);
-      const zoom = viewport.lastViewport.scaleX / zoomFactor;
-      const randX = (Math.random() * 500 - 1000);
-      const randY = (Math.random() * 500 - 1000);
-
-      this.goZoom(randX, randY, zoom);
+      this.goRandZoom('out');
     });
     keyboardjs.bind('space', (e) => {
       if (!this.emitter) return;
@@ -193,15 +182,35 @@ export default class Play extends Scene {
     });
   }
 
-  goZoom(x, y, scale) {
+  goRandZoom(inOrOut) {
+    const zoomFactor = (Math.random() * 4 + 1);
+    let zoom;
+
+    let randX = (Math.random() * window.innerWidth - window.innerWidth/2);
+    let randY = (Math.random() * window.innerHeight - window.innerHeight/2);
+    if(inOrOut == "in"){
+      zoom = viewport.lastViewport.scaleX * zoomFactor;
+      randX /= zoomFactor;
+    }else{
+      zoom = viewport.lastViewport.scaleX / zoomFactor;
+      randX *= zoomFactor;
+    }
+    console.log(viewport.lastViewport,viewport.center);
+    console.log(randX,randY);
+    console.log("windowsize: ", window.innerWidth,window.innerHeight)
+    console.log("emitter pos: ", this.emitter.spawnPos.x,this.emitter.spawnPos.y)
+
+    this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
+  }
+
+  goZoom(x, y, scale, callbackOnComplete) {
     if (!this.emitter) return;
-    console.log(viewport);
     viewport.animate({
-      time: 500, // time to animate
+      time: 2000, // time to animate
       position: { x, y }, // position to move viewport
       scale, // scale to change zoom(scale.x = scale.y)
       ease: 'easeOutCirc', // easing function to use
-      //     callbackOnComplete: null,       // callback when animate is complete
+      callbackOnComplete: callbackOnComplete.bind(this),       // callback when animate is complete
       removeOnInterrupt: true, // removes this plugin if interrupted by any user input
     });
   }
@@ -211,6 +220,10 @@ export default class Play extends Scene {
   }
   getRandomEmitterY() {
     return (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
+  }
+
+  moveEmitterRandomly() {
+    this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
   }
 
   moveEmitter(x, y) {
