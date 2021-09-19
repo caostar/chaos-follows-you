@@ -115,7 +115,7 @@ export default class Play extends Scene {
       const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
       const goY = (e.offsetY - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
 
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.moveEmitter(goX, goY);
     });
     canvas.addEventListener('touchmove', (e) => {
       if (!this.emitter) return;
@@ -125,114 +125,120 @@ export default class Play extends Scene {
       const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
       const goY = (e.offsetY - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
 
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.moveEmitter(goX, goY);
     });
     canvas.addEventListener('mouseout', (e) => {
       if (!this.emitter) return;
       const goX = (window.innerWidth / 2 - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
       const goY = (window.innerHeight / 2 - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
 
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.moveEmitter(goX, goY);
     });
     canvas.addEventListener('mousedown', (e) => {
       if (!this.emitter) return;
       this.newChaos();
     });
     // ///////////
-    //random move
+    // random move
     keyboardjs.bind('r', (e) => {
-      if (!this.emitter) return;
-      const goX = (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
-      const goY = (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
-      const zoom = Math.random();
-
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
     });
-    //zoom in
+    // zoom in
     keyboardjs.bind('z', (e) => {
-      if (!this.emitter) return;
-      window.viewport = viewport;
-      console.log(viewport.lastViewport);
-      viewport.animate({
-        time: 500, // time to animate
-        position: {x: (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX, y: (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY},                 // position to move viewport
-        scale: viewport.lastViewport.scaleX*(Math.random()*4+1), // scale to change zoom(scale.x = scale.y)
-        ease: 'easeOutCirc',                 // easing function to use
-        //     callbackOnComplete: null,       // callback when animate is complete
-        removeOnInterrupt: true, // removes this plugin if interrupted by any user input
-      });
+      this.goZoom(this.getRandomEmitterX(), this.getRandomEmitterY(), viewport.lastViewport.scaleX * (Math.random() * 4 + 1));
     });
-    //zoom out
+    // zoom out
     keyboardjs.bind('x', (e) => {
-      if (!this.emitter) return;
-      console.log(viewport.lastViewport);
-      //precisa travar antes de zero e diminuir aos poucos
-      viewport.animate({
-        time: 500, // time to animate
-        position: {x: (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX, y: (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY},                 // position to move viewport
-        scale: viewport.lastViewport.scaleX/(Math.random()*4+1), // scale to change zoom(scale.x = scale.y)
-        ease: 'easeOutCirc',                 // easing function to use
-        //     callbackOnComplete: null,       // callback when animate is complete
-        removeOnInterrupt: true, // removes this plugin if interrupted by any user input
-      });
+      this.goZoom(this.getRandomEmitterX(), this.getRandomEmitterY(), viewport.lastViewport.scaleX / (Math.random() * 4 + 1));
     });
     keyboardjs.bind('space', (e) => {
       if (!this.emitter) return;
       this.newChaos();
     });
     keyboardjs.bind('left', (e) => {
-      if (!this.emitter) return;
-      const go = this.emitter.spawnPos.x - this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: go, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('left', null);
     });
     keyboardjs.bind('right', (e) => {
-      if (!this.emitter) return;
-      const go = this.emitter.spawnPos.x + this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: go, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('right', null);
     });
     keyboardjs.bind('up', (e) => {
-      if (!this.emitter) return;
-      const go = this.emitter.spawnPos.y - this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { y: go, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove(null, 'up');
     });
     keyboardjs.bind('down', (e) => {
-      if (!this.emitter) return;
-      const go = this.emitter.spawnPos.y + this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { y: go, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove(null, 'down');
     });
     //
     keyboardjs.bind('right + up', (e) => {
-      if (!this.emitter) return;
-      const goX = this.emitter.spawnPos.x + this.movePad;
-      const goY = this.emitter.spawnPos.y - this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('right', 'up');
     });
     keyboardjs.bind('right + down', (e) => {
-      if (!this.emitter) return;
-      const goX = this.emitter.spawnPos.x + this.movePad;
-      const goY = this.emitter.spawnPos.y + this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('right', 'down');
     });
     keyboardjs.bind('left + up', (e) => {
-      if (!this.emitter) return;
-      const goX = this.emitter.spawnPos.x - this.movePad;
-      const goY = this.emitter.spawnPos.y - this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('left', 'up');
     });
     keyboardjs.bind('left + down', (e) => {
-      if (!this.emitter) return;
-      const goX = this.emitter.spawnPos.x - this.movePad;
-      const goY = this.emitter.spawnPos.y + this.movePad;
-
-      gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: this.moveSpeed, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+      this.goArrowMove('left', 'down');
     });
+  }
+
+  goZoom(x, y, scale) {
+    if (!this.emitter) return;
+    viewport.animate({
+      time: 500, // time to animate
+      position: { x, y }, // position to move viewport
+      scale, // scale to change zoom(scale.x = scale.y)
+      ease: 'easeOutCirc', // easing function to use
+      //     callbackOnComplete: null,       // callback when animate is complete
+      removeOnInterrupt: true, // removes this plugin if interrupted by any user input
+    });
+  }
+
+  getRandomEmitterX() {
+    return (Math.random() * window.innerWidth - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
+  }
+  getRandomEmitterY() {
+    return (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
+  }
+
+  moveEmitter(x, y) {
+    if (!this.emitter) return;
+
+    let goX = x || this.emitter.spawnPos.x;
+    let goY = y || this.emitter.spawnPos.y;
+
+    if (x === 0)goX = 0;
+    if (y === 0)goY = 0;
+
+    gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+  }
+
+  goArrowMove(dirX, dirY) {
+    this.moveEmitter(this.getXYDirectNextMove(dirX), this.getXYDirectNextMove(dirY));
+    if (!this.emitter) return;
+  }
+
+  getXYDirectNextMove(direction) {
+    let answer;
+
+    switch (direction) {
+      case 'left':
+        answer = this.emitter.spawnPos.x - this.movePad;
+        break;
+      case 'right':
+        answer = this.emitter.spawnPos.x + this.movePad;
+        break;
+      case 'down':
+        answer = this.emitter.spawnPos.y + this.movePad;
+        break;
+      case 'up':
+        answer = this.emitter.spawnPos.y - this.movePad;
+        break;
+      default:
+        answer = null;
+    }
+
+    return answer;
   }
 
   completeEmitterTween() {
