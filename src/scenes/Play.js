@@ -200,19 +200,26 @@ export default class Play extends Scene {
     console.log("windowsize: ", window.innerWidth,window.innerHeight)
     console.log("emitter pos: ", this.emitter.spawnPos.x,this.emitter.spawnPos.y)
 
+    this.moveEmitterRandomly();
     this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
   }
 
   goZoom(x, y, scale, callbackOnComplete) {
     if (!this.emitter) return;
-    viewport.animate({
-      time: 2000, // time to animate
-      position: { x, y }, // position to move viewport
-      scale, // scale to change zoom(scale.x = scale.y)
-      ease: 'easeOutCirc', // easing function to use
-      callbackOnComplete: callbackOnComplete.bind(this),       // callback when animate is complete
-      removeOnInterrupt: true, // removes this plugin if interrupted by any user input
-    });
+    // viewport.animate({
+    //   time: 2000, // time to animate
+    //   position: { x, y }, // position to move viewport
+    //   scale, // scale to change zoom(scale.x = scale.y)
+    //   ease: 'easeOutCirc', // easing function to use
+    //   callbackOnComplete: callbackOnComplete.bind(this),       // callback when animate is complete
+    //   removeOnInterrupt: true, // removes this plugin if interrupted by any user input
+    // });
+
+    //maybe tween 
+    //viewport.scale.x, viewport.scale.y, viewport.center - using viewport.lastViewport as information
+
+    gsap.to(viewport.scale, { x: scale, y: scale, duration: 2, ease: 'power2.out', onUpdate: callbackOnComplete.bind(this) });
+    gsap.to(viewport.position, { x: x, y: y, duration: 2, ease: 'power2.out', onComplete: callbackOnComplete.bind(this) });
   }
 
   getRandomEmitterX() {
@@ -222,7 +229,8 @@ export default class Play extends Scene {
     return (Math.random() * window.innerHeight - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
   }
 
-  moveEmitterRandomly() {
+  moveEmitterRandomly(changeAtFirstMove) {
+    if(changeAtFirstMove)this.newChaos(this);
     this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
   }
 
