@@ -143,6 +143,10 @@ export default class Play extends Scene {
     keyboardjs.bind('r', (e) => {
       this.moveEmitterRandomly();
     });
+    // random move disruptive
+    keyboardjs.bind('t', (e) => {
+      this.moveEmitterRandomly(true);
+    });
     // zoom in
     keyboardjs.bind('z', (e) => {
       this.goRandZoom('in');
@@ -167,7 +171,6 @@ export default class Play extends Scene {
     keyboardjs.bind('down', (e) => {
       this.goArrowMove(null, 'down');
     });
-    //
     keyboardjs.bind('right + up', (e) => {
       this.goArrowMove('right', 'up');
     });
@@ -183,43 +186,42 @@ export default class Play extends Scene {
   }
 
   goRandZoom(inOrOut) {
-    const zoomFactor = (Math.random() * 4 + 1);
+    const zoomFactor = (Math.random() * 5 + 1);
     let zoom;
 
-    let randX = (Math.random() * window.innerWidth - window.innerWidth/2);
-    let randY = (Math.random() * window.innerHeight - window.innerHeight/2);
-    if(inOrOut == "in"){
-      zoom = viewport.lastViewport.scaleX * zoomFactor;
-      randX /= zoomFactor;
-    }else{
-      zoom = viewport.lastViewport.scaleX / zoomFactor;
-      randX *= zoomFactor;
-    }
-    console.log(viewport.lastViewport,viewport.center);
-    console.log(randX,randY);
-    console.log("windowsize: ", window.innerWidth,window.innerHeight)
-    console.log("emitter pos: ", this.emitter.spawnPos.x,this.emitter.spawnPos.y)
+    let randX = (Math.random() * window.innerWidth);
+    let randY = (Math.random() * window.innerHeight);
+    let counterX = randX;
+    let counterY = randY;
 
-    this.moveEmitterRandomly();
+    if (inOrOut == 'in') {
+      zoom = viewport.lastViewport.scaleX * zoomFactor;
+      counterX /= zoom;
+      counterY /= zoom;
+    } else {
+      zoom = viewport.lastViewport.scaleX / zoomFactor;
+      counterX *= zoom;
+      counterY *= zoom;
+    }
+
+    randX -= this.emitter.spawnPos.x*zoom;
+    randY -= this.emitter.spawnPos.y*zoom;
+    //this.moveEmitterRandomly();
     this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
+    console.log(this.emitter.spawnPos.x,viewport.lastViewport.x,viewport.position.x)
+
+    //const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
+    //const goY = (e.offsetY - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
+    //this.moveEmitter(viewport.lastViewport.x - counterX, viewport.lastViewport.y - counterY);
+
   }
 
   goZoom(x, y, scale, callbackOnComplete) {
     if (!this.emitter) return;
-    // viewport.animate({
-    //   time: 2000, // time to animate
-    //   position: { x, y }, // position to move viewport
-    //   scale, // scale to change zoom(scale.x = scale.y)
-    //   ease: 'easeOutCirc', // easing function to use
-    //   callbackOnComplete: callbackOnComplete.bind(this),       // callback when animate is complete
-    //   removeOnInterrupt: true, // removes this plugin if interrupted by any user input
-    // });
 
-    //maybe tween 
-    //viewport.scale.x, viewport.scale.y, viewport.center - using viewport.lastViewport as information
+    gsap.to(viewport.scale, { x: scale, y: scale, duration: 2, ease: 'power2.out' });
+    gsap.to(viewport.position, { x, y, duration: 2, ease: 'power2.out' });
 
-    gsap.to(viewport.scale, { x: scale, y: scale, duration: 2, ease: 'power2.out', onUpdate: callbackOnComplete.bind(this) });
-    gsap.to(viewport.position, { x: x, y: y, duration: 2, ease: 'power2.out', onComplete: callbackOnComplete.bind(this) });
   }
 
   getRandomEmitterX() {
@@ -230,7 +232,7 @@ export default class Play extends Scene {
   }
 
   moveEmitterRandomly(changeAtFirstMove) {
-    if(changeAtFirstMove)this.newChaos(this);
+    if (changeAtFirstMove) this.newChaos(this);
     this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
   }
 
