@@ -7,6 +7,7 @@ export default {
     worldHeight: 500,
     resizeTo: window,
     centerOnResize: true,
+    antialias: true,
   },
   game: {
     width: 1000,

@@ -191,28 +191,28 @@ export default class Play extends Scene {
 
     let randX = (Math.random() * window.innerWidth);
     let randY = (Math.random() * window.innerHeight);
-    let counterX = randX;
-    let counterY = randY;
+
+    let viewportX = viewport.toScreen(this.emitter.spawnPos.x*zoom,this.emitter.spawnPos.y).x;
+    let viewportY = viewport.toScreen(this.emitter.spawnPos.x*zoom,this.emitter.spawnPos.y).y;
 
     if (inOrOut == 'in') {
       zoom = viewport.lastViewport.scaleX * zoomFactor;
-      counterX /= zoom;
-      counterY /= zoom;
     } else {
       zoom = viewport.lastViewport.scaleX / zoomFactor;
-      counterX *= zoom;
-      counterY *= zoom;
     }
 
     randX -= this.emitter.spawnPos.x*zoom;
     randY -= this.emitter.spawnPos.y*zoom;
-    //this.moveEmitterRandomly();
-    this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
-    console.log(this.emitter.spawnPos.x,viewport.lastViewport.x,viewport.position.x)
 
-    //const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
-    //const goY = (e.offsetY - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
-    //this.moveEmitter(viewport.lastViewport.x - counterX, viewport.lastViewport.y - counterY);
+    let randX2 = (Math.random() * window.innerWidth);
+    let randY2 = (Math.random() * window.innerHeight);
+
+    const goX = (randX2 / 2 - randX) / zoom;
+    const goY = (randY2 / 2 - randY) / zoom;
+    this.moveEmitter(goX,goY);
+
+    this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
+    console.log(viewportX, viewportY)
 
   }
 
