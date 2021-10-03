@@ -192,9 +192,6 @@ export default class Play extends Scene {
     let randX = (Math.random() * window.innerWidth);
     let randY = (Math.random() * window.innerHeight);
 
-    let viewportX = viewport.toScreen(this.emitter.spawnPos.x*zoom,this.emitter.spawnPos.y).x;
-    let viewportY = viewport.toScreen(this.emitter.spawnPos.x*zoom,this.emitter.spawnPos.y).y;
-
     if (inOrOut == 'in') {
       zoom = viewport.lastViewport.scaleX * zoomFactor;
     } else {
@@ -207,15 +204,14 @@ export default class Play extends Scene {
     let randX2 = (Math.random() * window.innerWidth);
     let randY2 = (Math.random() * window.innerHeight);
 
-    // const goX = (randX2 / 2 - randX) / zoom;
-    // const goY = (randY2 / 2 - randY) / zoom;
-    const goX = (window.innerWidth / 2 - randX) / zoom;
-    const goY = (window.innerHeight / 2 - randY) / zoom;
+    const goX = (randX2  - randX) / zoom;
+    const goY = (randY2  - randY) / zoom;
+    // const goX = (window.innerWidth / 2 - randX) / zoom;
+    // const goY = (window.innerHeight / 2 - randY) / zoom;
     this.moveEmitter(goX,goY);
     this.newChaos();
 
     this.goZoom(randX, randY, zoom, this.moveEmitterRandomly);
-    console.log(viewportX, viewportY)
 
   }
 
