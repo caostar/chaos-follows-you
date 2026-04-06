@@ -5,6 +5,7 @@ import { Emitter, upgradeConfig } from '@pixi/particle-emitter';
 import { PixiChaosStar } from '../builders/PixiChaosStar';
 import Assets from '../core/AssetManager';
 import keyboardjs from 'keyboardjs';
+import RandomController from '../controllers/RandomController';
 
 // Old v4 config (without textures — we inject those at runtime)
 const oldConfig = {
@@ -53,17 +54,26 @@ export default class Play extends Scene {
     this.emitter.emit = true;
     this.update();
 
-    // mouse/touch/keyboard setup
+    // --- Random mode setup ---
+    this.randomController = new RandomController(this);
+    await this.randomController.loadConfig();
+    this._lastInteraction = Date.now();
+    this._randomModeForced = false;
+    this._inactivityCheck = setInterval(() => this._checkInactivity(), 1000);
+
+    // --- Input setup ---
     const canvas = document.querySelector('canvas');
 
     canvas.addEventListener('mousemove', (e) => {
       if (!this.emitter) return;
+      this._onUserInteraction();
       const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
       const goY = (e.offsetY - viewport.lastViewport.y) / window.viewport.lastViewport.scaleY;
       this.moveEmitter(goX, goY);
     });
     canvas.addEventListener('touchmove', (e) => {
       if (!this.emitter) return;
+      this._onUserInteraction();
       e.offsetX = e.touches[0].pageX - e.touches[0].target.offsetLeft;
       e.offsetY = e.touches[0].pageY - e.touches[0].target.offsetTop;
       const goX = (e.offsetX - viewport.lastViewport.x) / window.viewport.lastViewport.scaleX;
@@ -78,22 +88,60 @@ export default class Play extends Scene {
     });
     canvas.addEventListener('mousedown', (e) => {
       if (!this.emitter) return;
+      this._onUserInteraction();
       this.newChaos();
     });
 
-    keyboardjs.bind('r', () => this.moveEmitterRandomly());
-    keyboardjs.bind('t', () => this.moveEmitterRandomly(true));
-    keyboardjs.bind('z', () => this.goRandZoom('in'));
-    keyboardjs.bind('x', () => this.goRandZoom('out'));
-    keyboardjs.bind('space', () => { if (this.emitter) this.newChaos(); });
-    keyboardjs.bind('left', () => this.goArrowMove('left', null));
-    keyboardjs.bind('right', () => this.goArrowMove('right', null));
-    keyboardjs.bind('up', () => this.goArrowMove(null, 'up'));
-    keyboardjs.bind('down', () => this.goArrowMove(null, 'down'));
-    keyboardjs.bind('right + up', () => this.goArrowMove('right', 'up'));
-    keyboardjs.bind('right + down', () => this.goArrowMove('right', 'down'));
-    keyboardjs.bind('left + up', () => this.goArrowMove('left', 'up'));
-    keyboardjs.bind('left + down', () => this.goArrowMove('left', 'down'));
+    keyboardjs.bind('r', () => { this._onUserInteraction(); this.moveEmitterRandomly(); });
+    keyboardjs.bind('t', () => { this._onUserInteraction(); this.moveEmitterRandomly(true); });
+    keyboardjs.bind('z', () => { this._onUserInteraction(); this.goRandZoom('in'); });
+    keyboardjs.bind('x', () => { this._onUserInteraction(); this.goRandZoom('out'); });
+    keyboardjs.bind('space', () => { if (this.emitter) { this._onUserInteraction(); this.newChaos(); } });
+    keyboardjs.bind('left', () => { this._onUserInteraction(); this.goArrowMove('left', null); });
+    keyboardjs.bind('right', () => { this._onUserInteraction(); this.goArrowMove('right', null); });
+    keyboardjs.bind('up', () => { this._onUserInteraction(); this.goArrowMove(null, 'up'); });
+    keyboardjs.bind('down', () => { this._onUserInteraction(); this.goArrowMove(null, 'down'); });
+    keyboardjs.bind('right + up', () => { this._onUserInteraction(); this.goArrowMove('right', 'up'); });
+    keyboardjs.bind('right + down', () => { this._onUserInteraction(); this.goArrowMove('right', 'down'); });
+    keyboardjs.bind('left + up', () => { this._onUserInteraction(); this.goArrowMove('left', 'up'); });
+    keyboardjs.bind('left + down', () => { this._onUserInteraction(); this.goArrowMove('left', 'down'); });
+
+    // Toggle random mode
+    const toggleKey = this.randomController.config?.toggleKey || 'a';
+    keyboardjs.bind(toggleKey, () => {
+      this._randomModeForced = !this._randomModeForced;
+      if (this._randomModeForced) {
+        this.randomController.start();
+      } else {
+        this.randomController.stop();
+      }
+    });
+  }
+
+  _onUserInteraction() {
+    this._lastInteraction = Date.now();
+    // Stop random mode if it was auto-triggered (not forced)
+    if (this.randomController.active && !this._randomModeForced) {
+      this.randomController.stop();
+    }
+  }
+
+  _checkInactivity() {
+    if (this._randomModeForced) return;
+    if (!this.randomController.config?.enabled) return;
+
+    const timeout = (this.randomController.config?.inactivityTimeout || 30) * 1000;
+    const idle = Date.now() - this._lastInteraction;
+
+    if (idle >= timeout && !this.randomController.active) {
+      this.randomController.start();
+    }
+  }
+
+  _clampZoom(scale) {
+    const cfg = this.randomController.config?.zoom;
+    if (!cfg) return scale;
+    return Math.max(cfg.minScale, Math.min(cfg.maxScale, scale));
   }
 
   goRandZoom(inOrOut) {
@@ -109,6 +157,8 @@ export default class Play extends Scene {
       zoom = viewport.lastViewport.scaleX / zoomFactor;
     }
 
+    zoom = this._clampZoom(zoom);
+
     randX -= this.emitter.spawnPos.x * zoom;
     randY -= this.emitter.spawnPos.y * zoom;
 
@@ -123,10 +173,11 @@ export default class Play extends Scene {
     this.goZoom(randX, randY, zoom);
   }
 
-  goZoom(x, y, scale) {
+  goZoom(x, y, scale, duration = 2) {
     if (!this.emitter) return;
-    gsap.to(viewport.scale, { x: scale, y: scale, duration: 2, ease: 'power2.out' });
-    gsap.to(viewport.position, { x, y, duration: 2, ease: 'power2.out' });
+    scale = this._clampZoom(scale);
+    gsap.to(viewport.scale, { x: scale, y: scale, duration, ease: 'power2.out' });
+    gsap.to(viewport.position, { x, y, duration, ease: 'power2.out' });
   }
 
   getRandomEmitterX() {
@@ -142,7 +193,7 @@ export default class Play extends Scene {
     this.moveEmitter(this.getRandomEmitterX(), this.getRandomEmitterY());
   }
 
-  moveEmitter(x, y) {
+  moveEmitter(x, y, duration = 2, ease = 'power2.out') {
     if (!this.emitter) return;
 
     let goX = x || this.emitter.spawnPos.x;
@@ -151,7 +202,7 @@ export default class Play extends Scene {
     if (x === 0) goX = 0;
     if (y === 0) goY = 0;
 
-    gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration: 2, ease: 'power2.out', onComplete: this.completeEmitterTween() });
+    gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration, ease, onComplete: this.completeEmitterTween() });
   }
 
   goArrowMove(dirX, dirY) {
@@ -177,7 +228,6 @@ export default class Play extends Scene {
   newChaos(_this) {
     _this = _this != null ? _this : this;
     const newTexture = _this.getRandomPixiCaostarTexture();
-    // In v5, update the textures array on the live behavior instance
     if (_this._textureBehavior) {
       _this._textureBehavior.textures = [newTexture];
     }

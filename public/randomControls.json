@@ -1,0 +1,43 @@
+{
+  "_comment": "Tweak these values and refresh the page to change random mode aesthetics",
+
+  "enabled": true,
+  "toggleKey": "a",
+  "inactivityTimeout": 30,
+
+  "zoom": {
+    "_comment": "Absolute scale bounds to prevent scene disappearing or exploding",
+    "minScale": 0.05,
+    "maxScale": 50,
+    "inFactor": { "min": 1.2, "max": 3.0 },
+    "outFactor": { "min": 1.2, "max": 3.0 },
+    "duration": { "min": 2.0, "max": 5.0 },
+    "weight": 10,
+    "cooldown": 5.0
+  },
+
+  "movement": {
+    "_comment": "Controls how the emitter wanders autonomously",
+    "duration": { "min": 1.5, "max": 4.0 },
+    "ease": "power2.inOut",
+    "weight": 60,
+    "cooldown": 0.5
+  },
+
+  "shapeChange": {
+    "_comment": "How often a new chaos star shape is generated",
+    "weight": 30,
+    "cooldown": 1.0
+  },
+
+  "pause": {
+    "_comment": "Occasional stillness for dramatic effect",
+    "chance": 0.15,
+    "duration": { "min": 1.0, "max": 4.0 }
+  },
+
+  "rhythm": {
+    "_comment": "Master tick interval — how often the controller picks a new action (seconds)",
+    "interval": { "min": 0.8, "max": 3.0 }
+  }
+}
