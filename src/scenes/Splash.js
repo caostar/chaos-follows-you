@@ -25,13 +25,12 @@ export default class Splash extends Scene {
   }
 
   preload() {
-    const images = {
-    };
+    const images = {};
 
     let textureIndex = 0;
 
     for (const [key, value] of Object.entries(Assets.images)) {
-      if (key.indexOf('texture') != -1) {
+      if (key.indexOf('texture') !== -1) {
         textureIndex++;
         images[`texture${textureIndex}`] = value;
       }
@@ -39,9 +38,7 @@ export default class Splash extends Scene {
 
     Assets.textures = images;
 
-    const sounds = {
-
-    };
+    const sounds = {};
 
     return super.preload({ images, sounds });
   }

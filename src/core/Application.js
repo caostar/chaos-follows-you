@@ -1,4 +1,4 @@
-import { Sprite, Application } from 'pixi.js';
+import { Sprite, Application, Assets as PixiAssets } from 'pixi.js';
 import config from '../config';
 import Game from '../Game';
 import { Viewport } from 'pixi-viewport';
@@ -21,11 +21,6 @@ export default class GameApplication extends Application {
     this.initGame();
   }
 
-  /**
-   * Game main entry point. Loads and prerenders assets.
-   * Creates the main game container.
-   *
-   */
   async initGame() {
     await this.createBackground();
 
@@ -38,20 +33,13 @@ export default class GameApplication extends Application {
     this.game.start();
   }
 
-  /**
-     * Initialize the game world viewport.
-     * Supports handly functions like dragging and panning on the main game stage
-     *
-     * @return {PIXI.Application}
-     */
   setupViewport() {
     const viewport = new Viewport({
       screenWidth: this.config.view.width,
       screenHeight: this.config.view.height,
       worldWidth: this.config.game.width,
       worldHeight: this.config.game.height,
-      // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
-      interaction: this.renderer.plugins.interaction,
+      events: this.renderer.events,
     });
 
     this.renderer.runners.resize.add({
@@ -65,31 +53,20 @@ export default class GameApplication extends Application {
     if (this.config.game.pinch) viewport.pinch();
     if (this.config.game.wheel) viewport.wheel();
     if (this.config.game.decelerate) viewport.decelerate();
-    const canvas = document.getElementsByTagName('canvas')[0];
-
-    // viewport.on('moved-end', (e) => {
-    //   console.log("viewport.lastViewport:", viewport.lastViewport);
-    //   console.log("viewport.center:", viewport.center);
-    //   console.log('windowsize: ', window.innerWidth, window.innerHeight);
-    //   console.log("move//////");
-    // });
 
     this.viewport = viewport;
     window.viewport = viewport;
   }
 
-  /**
-     * Called after the browser window has been resized.
-     * Implement game specific resize logic here
-     * @param  {PIXI.Application} app The PIXI Appliaction instance
-     * @param  {Number} width         The updated viewport width
-     * @param  {Number} height        The updated viewport width
-     */
   onResize(width = this.config.view.width, height = this.config.view.height) {
-    center(this.background, { width, height });
-    this.game.onResize(width, height);
+    if (this.background) {
+      center(this.background, { width, height });
+    }
+    if (this.game) {
+      this.game.onResize(width, height);
+    }
 
-    if (this.config.view.centerOnResize) {
+    if (this.config.view.centerOnResize && this.viewport) {
       this.viewport.x = width / 2;
       this.viewport.y = height / 2;
     }
@@ -101,21 +78,14 @@ export default class GameApplication extends Application {
        || (navigator.msMaxTouchPoints > 0));
   }
 
-  /**
-   * Initializes the static background that is used to
-   * fill the empty space around our game stage. This is used to compensate for the different browser window sizes.
-   *
-   */
   async createBackground() {
     const images = { background: Assets.images.background };
 
     await Assets.load({ images });
-    await Assets.prepareImages(images);
 
     const sprite = Sprite.from('background');
 
-    this.stage.addChildAt(sprite);
+    this.stage.addChildAt(sprite, 0);
     this.background = sprite;
   }
 }
-

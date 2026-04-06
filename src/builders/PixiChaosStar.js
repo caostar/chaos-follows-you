@@ -120,7 +120,7 @@ export class PixiChaosStar extends PIXI.Container {
     this.starBMP.texture = texture;
     this.starBMP.mask = this.theStarGraphic;
     //
-    this.starTexture = renderer.generateTexture(this, PIXI.SCALE_MODES.LINEAR, window.devicePixelRatio || 1);
+    this.starTexture = renderer.generateTexture(this);
   }
 
   //

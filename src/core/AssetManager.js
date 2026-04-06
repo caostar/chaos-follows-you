@@ -1,8 +1,7 @@
 import { Howl } from 'howler';
-import { Loader, Texture } from 'pixi.js';
-import config from '../config';
+import { Assets, Texture } from 'pixi.js';
 
-const context = require.context('../assets', true, /\.(jpg|png|wav)$/im);
+const assetModules = import.meta.glob('../assets/**/*.{jpg,png,wav}', { eager: true, query: '?url', import: 'default' });
 
 const IMG_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const SOUND_EXTENSIONS = ['wav', 'ogg', 'm4a'];
@@ -11,7 +10,6 @@ const SOUND_EXTENSIONS = ['wav', 'ogg', 'm4a'];
  * Global asset manager to help streamline asset usage in your game.
  * Automatically scans and stores a manifest of all available assets, so that they could
  * be loaded at any time
- *
  */
 class AssetManager {
   constructor() {
@@ -28,84 +26,57 @@ class AssetManager {
   /**
    * The main method of the AssetManager, use this to load any desired assets
    *
-   * ```js
-   * AssetManager.load({
-   *  images: {
-   *    logo: Assets.images.logo,
-   *    logoBack: Assets.images.logoBack,
-   *  }
-   * })
-   * ```
-   *
-   * @type {Object} options.images id-url object map of the images to be loaded
-   * @type {Object} options.sounds id-url object map of the sounds to be loaded
-   * @type {Object} options.sounds id-url object map of the sounds to be loaded
-   * @type {Function} progressCallback Progress callback function, called every time a single asset is loaded
-   *
-   * @return {Promise} Returns a promise that is resolved once all assets are loaded
+   * @param {Object} assets - { images, sounds } maps of id → url
+   * @param {Function} progressCallback - called with progress percentage
+   * @return {Promise}
    */
-  load(assets = { images: this._images, sounds: this._sounds }, progressCallback = () => {}) {
+  async load(assets = { images: this._images, sounds: this._sounds }, progressCallback = () => {}) {
     const { images, sounds } = assets;
-    const assetTypesCount = Object.keys(assets).length;
     const imagesCount = images ? Object.keys(images).length : 0;
     const soundsCount = sounds ? Object.keys(sounds).length : 0;
     const loadPromises = [];
-    let loadProgress = 0;
-
-    const calcTotalProgress = (val) => {
-      loadProgress += val / assetTypesCount;
-      progressCallback(parseInt(loadProgress, 10));
-    };
 
     if (imagesCount) {
-      loadPromises.push(this.loadImages(images, () => calcTotalProgress(100 / imagesCount)));
+      loadPromises.push(this.loadImages(images, progressCallback));
     }
 
     if (soundsCount) {
-      loadPromises.push(this.loadSounds(sounds, calcTotalProgress));
+      loadPromises.push(this.loadSounds(sounds, progressCallback));
     }
 
     return Promise.all(loadPromises);
   }
 
   /**
-     * Create a Loader instance and add the game assets to the queue
-     *
-     * @return {Promise} Resolved when the assets files are downloaded and parsed into texture objects
-     */
-  loadImages(images = {}, progressCallback = () => {}) {
-    const loader = new Loader(config.root);
+   * Load images using Pixi v7 Assets API
+   * @return {Promise}
+   */
+  async loadImages(images = {}, progressCallback = () => {}) {
+    const entries = Object.entries(images);
+    let loaded = 0;
 
-    for (const [img, url] of Object.entries(images)) {
-      loader.add(img, url);
+    for (const [id, url] of entries) {
+      if (!Assets.resolver.hasKey(id)) {
+        Assets.add({ alias: id, src: url });
+      }
+      await Assets.load(id);
+      loaded++;
+      progressCallback(Math.round((loaded / entries.length) * 100));
     }
-
-    loader.onProgress.add(() => progressCallback(loader.progress));
-
-    return new Promise(loader.load.bind(loader));
   }
 
   /**
-     * Prerender our loaded textures, so that they don't need to be uploaded to the GPU the first time we use them.
-     * Very helpful when we want to swap textures during an animation without the animation stuttering
-     *
-     * @return {Promise} Resolved when all queued uploads have completed
-     */
-  prepareImages(images = {}, renderer = this.renderer) {
-    const prepare = renderer.plugins.prepare;
-
-    for (const [img] of Object.entries(images)) {
-      prepare.add(Texture.from(img));
-    }
-
-    return new Promise(prepare.upload.bind(prepare));
+   * In Pixi v7, textures loaded via Assets are automatically uploaded to the GPU.
+   * This method is kept for API compatibility but is now a no-op.
+   */
+  async prepareImages() {
+    return Promise.resolve();
   }
 
   /**
-     * Create a Howl instance for each sound asset and load it.
-     *
-     * @return {Promise} Resolved when the assets files are downloaded and parsed into Howl objects
-     */
+   * Load sounds using Howler
+   * @return {Promise}
+   */
   loadSounds(sounds = {}, progressCallback = () => {}) {
     const soundPromises = [];
 
@@ -113,39 +84,27 @@ class AssetManager {
       soundPromises.push(this._loadSound(id, url));
     }
 
-    // currently howler doesn't support loading progress
-    Promise.all(soundPromises).then(progressCallback(100));
+    Promise.all(soundPromises).then(() => progressCallback(100));
 
-    return soundPromises;
+    return Promise.all(soundPromises);
   }
 
-  /**
-   * Manifest of all available images
-   */
   get images() {
     return this._images;
   }
 
-  /**
-   * Manifest of all available sounds
-   */
   get sounds() {
     return this._sounds;
   }
 
-  /**
-   * Manifest of all available assets
-   */
   get assets() {
     return this._assets;
   }
 
-  /**
-   * Get number of textures
-   */
   get textures() {
     return this._textures;
   }
+
   set textures(obj) {
     this._textures = obj;
   }
@@ -159,27 +118,32 @@ class AssetManager {
   }
 
   /**
-   * Scans the assets directory and creates a manifest of all available assets, split into categories.
-   * Currently supports images and sounds.
-   *
-   * @private
+   * Scans the assets directory via Vite's import.meta.glob and creates a manifest
+   * of all available assets, split into images and sounds.
    */
   _importAssets() {
-    context.keys().forEach((filename) => {
-      let [, id, ext] = filename.split('.'); // eslint-disable-line prefer-const
-      const url = context(filename);
+    for (const [path, url] of Object.entries(assetModules)) {
+      const parts = path.split('/');
+      const filename = parts[parts.length - 1];
+      const dotIndex = filename.lastIndexOf('.');
+      const ext = filename.substring(dotIndex + 1).toLowerCase();
 
-      id = id.substring(1);
+      // Build an id from the directory structure:
+      // ../assets/textures/colors/1.jpg → "textures/colors/1"
+      // ../assets/background.jpg → "background"
+      const relativePath = path.replace('../assets/', '');
+      const id = relativePath.substring(0, relativePath.lastIndexOf('.'));
+
       this._assets[id] = url;
 
-      if (IMG_EXTENSIONS.indexOf(ext) > -1) {
+      if (IMG_EXTENSIONS.includes(ext)) {
         this._images[id] = url;
       }
 
-      if (SOUND_EXTENSIONS.indexOf(ext) > -1) {
+      if (SOUND_EXTENSIONS.includes(ext)) {
         this._sounds[id] = url;
       }
-    });
+    }
   }
 }
 
