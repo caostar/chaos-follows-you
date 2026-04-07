@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@pixi/particle-emitter": "^5.0.8",
+    "audiomotion-analyzer": "^4.5.4",
     "gsap": "^3.12.0",
     "howler": "^2.2.4",
     "keyboardjs": "^2.7.0",

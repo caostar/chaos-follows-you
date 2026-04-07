@@ -6,6 +6,8 @@ import { PixiChaosStar } from '../builders/PixiChaosStar';
 import Assets from '../core/AssetManager';
 import keyboardjs from 'keyboardjs';
 import RandomController from '../controllers/RandomController';
+import AudioController from '../controllers/AudioController';
+import AudioPanel from '../ui/AudioPanel';
 
 // Old v4 config (without textures — we inject those at runtime)
 const oldConfig = {
@@ -60,6 +62,11 @@ export default class Play extends Scene {
     this._lastInteraction = Date.now();
     this._randomModeForced = false;
     this._inactivityCheck = setInterval(() => this._checkInactivity(), 1000);
+
+    // --- Audio mode setup ---
+    this.audioController = new AudioController(this);
+    await this.audioController.loadConfig();
+    this.audioPanel = new AudioPanel(this.audioController);
 
     // --- Input setup ---
     const canvas = document.querySelector('canvas');
@@ -117,6 +124,11 @@ export default class Play extends Scene {
         console.log('[Mode] Random mode toggled OFF (manual)');
         this.randomController.stop();
       }
+    });
+
+    // Toggle audio panel
+    keyboardjs.bind('m', () => {
+      this.audioPanel.toggle();
     });
   }
 
