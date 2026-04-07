@@ -28,8 +28,8 @@ Random mode activates in two ways:
 | `outFactor` | `{min, max}` | `{1.2, 3.0}` | Random multiplier range when zooming **out**. A factor of 2.0 means "zoom to half current scale". Higher max = more dramatic zoom-outs. |
 | `inBias` | number | `0.5` | Probability of zooming **in** vs **out** (0.0 = always out, 1.0 = always in, 0.5 = equal chance). The system overrides this when near the min/max bounds to prevent hitting limits. |
 | `duration` | `{min, max}` | `{2.0, 5.0}` | How long the zoom animation takes in seconds. Longer = smoother, more cinematic. Shorter = snappy. |
-| `weight` | number | `10` | Relative probability of a zoom action vs other actions. See [Action Weights](#action-weights). |
-| `cooldown` | number | `5.0` | Reserved for future use. Minimum seconds between zoom actions. |
+| `weight` | number | `10` | **How often** zoom happens relative to other actions. With defaults (movement 60, shape 30, zoom 10), zoom fires ~10% of ticks. Set to 30 to make zoom as frequent as shape changes. See [Action Weights](#action-weights). |
+| `cooldown` | number | `5.0` | Minimum seconds between zoom actions. Even if zoom is selected by the weight roll, it won't fire if the cooldown hasn't elapsed — another action fires instead. Set to 0 for no cooldown. |
 
 ### `movement` — Controls emitter wandering
 
@@ -38,7 +38,7 @@ Random mode activates in two ways:
 | `duration` | `{min, max}` | `{1.5, 4.0}` | How long the emitter takes to travel to a new position (seconds). |
 | `ease` | string | `"power2.inOut"` | GSAP easing function. Controls the acceleration curve of movement. |
 | `weight` | number | `60` | Relative probability of a move action. |
-| `cooldown` | number | `0.5` | Reserved for future use. |
+| `cooldown` | number | `0.5` | Minimum seconds between this action type. If on cooldown, another action fires instead. Set to 0 for no cooldown. |
 
 **Available easing values:** `"power1.inOut"`, `"power2.inOut"`, `"power3.inOut"`, `"power4.inOut"`, `"elastic.out"`, `"bounce.out"`, `"back.inOut"`, `"sine.inOut"`, `"expo.inOut"`, `"circ.inOut"`, `"none"` (linear). See [GSAP Eases](https://gsap.com/docs/v3/Eases/).
 
@@ -47,7 +47,7 @@ Random mode activates in two ways:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `weight` | number | `30` | Relative probability of generating a new star shape. |
-| `cooldown` | number | `1.0` | Reserved for future use. |
+| `cooldown` | number | `1.0` | Minimum seconds between this action type. If on cooldown, another action fires instead. Set to 0 for no cooldown. |
 
 ### `pause` — Occasional moments of stillness
 
@@ -74,6 +74,26 @@ With defaults (movement: 60, shapeChange: 30, zoom: 10):
 - **Zoom**: 10% chance
 
 To make zoom happen more often, increase `zoom.weight`. To make it rarer, decrease it.
+
+**Cooldowns** add a time-based constraint on top of weights. If `zoom.cooldown` is 5.0, zoom can fire at most once every 5 seconds, even if the weight roll selects it. When an action is on cooldown, the tick picks from the remaining available actions instead.
+
+---
+
+## Understanding Zoom Controls
+
+There are three independent controls for zoom — they answer different questions:
+
+| Control | Question it answers | Example |
+|---------|-------------------|---------|
+| `zoom.weight` | **How often** does zoom happen at all? | `weight: 30` = zoom fires ~30% of ticks (vs movement + shape) |
+| `zoom.cooldown` | **Minimum gap** between consecutive zooms? | `cooldown: 5.0` = at most one zoom every 5 seconds |
+| `zoom.inBias` | **When zoom fires**, does it go in or out? | `inBias: 0.8` = 80% zoom in, 20% zoom out |
+
+So if you want zoom to happen **often** but **always inward**: `weight: 40, cooldown: 0, inBias: 1.0`
+
+If you want zoom to be **rare** but **dramatic**: `weight: 5, cooldown: 10, inFactor.max: 6.0`
+
+If you want **frequent gentle zoom oscillation**: `weight: 50, cooldown: 2, inBias: 0.5, inFactor.max: 1.5, outFactor.max: 1.5`
 
 ---
 

@@ -183,6 +183,46 @@ describe('RandomController', () => {
     });
   });
 
+  describe('cooldowns', () => {
+    it('respects zoom cooldown - skips zoom when on cooldown', () => {
+      // Force zoom to fire first
+      controller._dispatch('zoom');
+      expect(play.goZoom).toHaveBeenCalledTimes(1);
+
+      // Now zoom is on cooldown (5s). Force another _act with roll that would select zoom.
+      // With all actions available: movement(60) + shape(30) + zoom(10) = 100
+      // zoom range is 90-100, so 0.95 * 100 = 95 should hit zoom
+      vi.spyOn(Math, 'random').mockReturnValue(0.95);
+      controller._act();
+      // zoom should NOT fire again because it's on cooldown
+      // instead movement or shape should fire (the candidates without zoom)
+      expect(play.goZoom).toHaveBeenCalledTimes(1);
+      vi.spyOn(Math, 'random').mockRestore();
+    });
+
+    it('allows zoom again after cooldown elapses', () => {
+      controller._dispatch('zoom');
+      expect(play.goZoom).toHaveBeenCalledTimes(1);
+
+      // Advance past cooldown
+      vi.advanceTimersByTime(6000);
+
+      // Now zoom should be off cooldown
+      expect(controller._isOffCooldown('zoom')).toBe(true);
+    });
+
+    it('action with 0 cooldown is always available', () => {
+      // Movement has cooldown 0.5, but let's test with a 0 cooldown
+      const originalCooldown = controller.config.movement.cooldown;
+      controller.config.movement.cooldown = 0;
+
+      controller._dispatch('movement');
+      expect(controller._isOffCooldown('movement')).toBe(true);
+
+      controller.config.movement.cooldown = originalCooldown;
+    });
+  });
+
   describe('_rand', () => {
     it('returns value within range', () => {
       for (let i = 0; i < 100; i++) {

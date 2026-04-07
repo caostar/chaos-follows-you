@@ -11,7 +11,13 @@ export default class RandomController {
     this.active = false;
     this.config = null;
     this._timeout = null;
-    this._paused = false;
+
+    // Cooldown tracking: last time each action type fired (ms timestamp)
+    this._lastActionTime = {
+      movement: 0,
+      shapeChange: 0,
+      zoom: 0,
+    };
   }
 
   async loadConfig() {
@@ -23,15 +29,18 @@ export default class RandomController {
   start() {
     if (this.active) return;
     this.active = true;
+    console.log('[RandomMode] Started');
     this._scheduleNext();
   }
 
   stop() {
+    if (!this.active) return;
     this.active = false;
     if (this._timeout) {
       clearTimeout(this._timeout);
       this._timeout = null;
     }
+    console.log('[RandomMode] Stopped');
   }
 
   _scheduleNext() {
@@ -42,7 +51,8 @@ export default class RandomController {
 
     // Chance of a contemplative pause
     if (Math.random() < pause.chance) {
-      delay += this._rand(pause.duration.min, pause.duration.max) * 1000;
+      const pauseDuration = this._rand(pause.duration.min, pause.duration.max);
+      delay += pauseDuration * 1000;
     }
 
     this._timeout = setTimeout(() => {
@@ -52,17 +62,58 @@ export default class RandomController {
     }, delay);
   }
 
+  /**
+   * Check if an action is off cooldown.
+   * @param {string} actionType - 'movement', 'shapeChange', or 'zoom'
+   * @returns {boolean}
+   */
+  _isOffCooldown(actionType) {
+    const cooldown = this.config[actionType]?.cooldown ?? 0;
+    if (cooldown <= 0) return true;
+    return (Date.now() - this._lastActionTime[actionType]) >= cooldown * 1000;
+  }
+
+  _markAction(actionType) {
+    this._lastActionTime[actionType] = Date.now();
+  }
+
   _act() {
     const { movement, shapeChange, zoom } = this.config;
-    const totalWeight = movement.weight + shapeChange.weight + zoom.weight;
+
+    // Build list of available actions (respecting cooldowns)
+    const candidates = [];
+    if (this._isOffCooldown('movement')) {
+      candidates.push({ type: 'movement', weight: movement.weight });
+    }
+    if (this._isOffCooldown('shapeChange')) {
+      candidates.push({ type: 'shapeChange', weight: shapeChange.weight });
+    }
+    if (this._isOffCooldown('zoom')) {
+      candidates.push({ type: 'zoom', weight: zoom.weight });
+    }
+
+    // If everything is on cooldown, skip this tick
+    if (candidates.length === 0) return;
+
+    const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
     const roll = Math.random() * totalWeight;
 
-    if (roll < movement.weight) {
-      this._move();
-    } else if (roll < movement.weight + shapeChange.weight) {
-      this._changeShape();
-    } else {
-      this._zoom();
+    let cumulative = 0;
+    for (const candidate of candidates) {
+      cumulative += candidate.weight;
+      if (roll < cumulative) {
+        this._dispatch(candidate.type);
+        return;
+      }
+    }
+  }
+
+  _dispatch(actionType) {
+    this._markAction(actionType);
+    switch (actionType) {
+      case 'movement': this._move(); break;
+      case 'shapeChange': this._changeShape(); break;
+      case 'zoom': this._zoom(); break;
     }
   }
 

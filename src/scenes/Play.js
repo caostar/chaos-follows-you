@@ -111,8 +111,10 @@ export default class Play extends Scene {
     keyboardjs.bind(toggleKey, () => {
       this._randomModeForced = !this._randomModeForced;
       if (this._randomModeForced) {
+        console.log('[Mode] Random mode toggled ON (manual)');
         this.randomController.start();
       } else {
+        console.log('[Mode] Random mode toggled OFF (manual)');
         this.randomController.stop();
       }
     });
@@ -122,6 +124,7 @@ export default class Play extends Scene {
     this._lastInteraction = Date.now();
     // Stop random mode if it was auto-triggered (not forced)
     if (this.randomController.active && !this._randomModeForced) {
+      console.log('[Mode] Random mode stopped (user interaction)');
       this.randomController.stop();
     }
   }
@@ -134,6 +137,7 @@ export default class Play extends Scene {
     const idle = Date.now() - this._lastInteraction;
 
     if (idle >= timeout && !this.randomController.active) {
+      console.log(`[Mode] Random mode auto-started (${Math.round(idle / 1000)}s inactivity)`);
       this.randomController.start();
     }
   }
