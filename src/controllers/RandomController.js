@@ -83,14 +83,16 @@ export default class RandomController {
     const { zoom } = this.config;
     const currentScale = window.viewport.lastViewport?.scaleX || 1;
 
-    // Decide direction based on current scale and bounds
+    // Decide direction: inBias controls how often it zooms in vs out (0=always out, 1=always in)
+    // Override when near bounds to prevent hitting limits
+    const inBias = zoom.inBias ?? 0.5;
     let direction;
     if (currentScale <= zoom.minScale * 1.5) {
       direction = 'in';
     } else if (currentScale >= zoom.maxScale * 0.7) {
       direction = 'out';
     } else {
-      direction = Math.random() < 0.5 ? 'in' : 'out';
+      direction = Math.random() < inBias ? 'in' : 'out';
     }
 
     const factor = direction === 'in'

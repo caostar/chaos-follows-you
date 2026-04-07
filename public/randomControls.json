@@ -11,6 +11,7 @@
     "maxScale": 50,
     "inFactor": { "min": 1.2, "max": 3.0 },
     "outFactor": { "min": 1.2, "max": 3.0 },
+    "inBias": 0.5,
     "duration": { "min": 2.0, "max": 5.0 },
     "weight": 10,
     "cooldown": 5.0
