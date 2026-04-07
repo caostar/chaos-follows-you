@@ -8,6 +8,8 @@ import keyboardjs from 'keyboardjs';
 import RandomController from '../controllers/RandomController';
 import AudioController from '../controllers/AudioController';
 import AudioPanel from '../ui/AudioPanel';
+import HandController from '../controllers/HandController';
+import HandPanel from '../ui/HandPanel';
 
 // Old v4 config (without textures — we inject those at runtime)
 const oldConfig = {
@@ -67,6 +69,11 @@ export default class Play extends Scene {
     this.audioController = new AudioController(this);
     await this.audioController.loadConfig();
     this.audioPanel = new AudioPanel(this.audioController);
+
+    // --- Hand tracking setup ---
+    this.handController = new HandController(this);
+    await this.handController.loadConfig();
+    this.handPanel = new HandPanel(this.handController);
 
     // --- Input setup ---
     const canvas = document.querySelector('canvas');
@@ -129,6 +136,18 @@ export default class Play extends Scene {
     // Toggle audio panel
     keyboardjs.bind('m', () => {
       this.audioPanel.toggle();
+    });
+
+    // Toggle hand tracking panel
+    keyboardjs.bind('h', () => {
+      this.handPanel.toggle();
+    });
+
+    // Toggle hand tracking debug video overlay
+    keyboardjs.bind('d', () => {
+      if (this.handController.active) {
+        this.handController.toggleDebug();
+      }
     });
   }
 
