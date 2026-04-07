@@ -239,21 +239,25 @@ describe('HandController', () => {
       for (let i = 0; i < 21; i++) {
         lm.push({ x: 0.5, y: 0.5, z: 0 });
       }
-      // All fingers extended
-      lm[8] = { x: 0.5, y: 0.2, z: 0 };
-      lm[5] = { x: 0.5, y: 0.5, z: 0 };
-      lm[12] = { x: 0.5, y: 0.2, z: 0 };
-      lm[9] = { x: 0.5, y: 0.5, z: 0 };
-      lm[16] = { x: 0.5, y: 0.2, z: 0 };
-      lm[13] = { x: 0.5, y: 0.5, z: 0 };
-      lm[20] = { x: 0.5, y: 0.2, z: 0 };
-      lm[17] = { x: 0.5, y: 0.5, z: 0 };
-      // Make sure thumb and index are far enough apart (no pinch)
-      lm[4] = { x: 0.2, y: 0.2, z: 0 };
-      lm[8] = { x: 0.5, y: 0.2, z: 0 };
+      // All 4 fingers extended: tips well above MCPs
+      lm[5] = { x: 0.3, y: 0.6, z: 0 };  // index MCP
+      lm[8] = { x: 0.3, y: 0.2, z: 0 };  // index tip (extended)
+      lm[9] = { x: 0.4, y: 0.6, z: 0 };  // middle MCP
+      lm[12] = { x: 0.4, y: 0.2, z: 0 }; // middle tip (extended)
+      lm[13] = { x: 0.5, y: 0.6, z: 0 }; // ring MCP
+      lm[16] = { x: 0.5, y: 0.2, z: 0 }; // ring tip (extended)
+      lm[17] = { x: 0.6, y: 0.6, z: 0 }; // pinky MCP
+      lm[20] = { x: 0.6, y: 0.2, z: 0 }; // pinky tip (extended)
+      // Thumb far from index (no pinch)
+      lm[4] = { x: 0.1, y: 0.3, z: 0 };  // thumb tip
+
+      // Verify gesture detection works
+      expect(controller._detectGesture(lm)).toBe('open');
+      expect(controller._isPinching(lm)).toBe(false);
 
       const results = { landmarks: [lm], handedness: [] };
-      controller._processResults(results, performance.now());
+      // Use a large timestamp to ensure gesture cooldown (800ms) has elapsed from 0
+      controller._processResults(results, 10000);
 
       expect(play.goZoom).toHaveBeenCalled();
     });

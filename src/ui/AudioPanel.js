@@ -1,14 +1,16 @@
 /**
- * AudioPanel — Floating DOM overlay for audio input controls.
+ * AudioPanel — Collapsible floating panel for audio input controls.
  *
- * Toggled with the 'm' key. Provides buttons for stream, file upload,
- * and microphone input. Shows current audio status and a small
- * energy bar visualization.
+ * Collapsed: shows only a 🔊 emoji tab on the left edge.
+ * Expanded: shows full audio controls.
+ * 'm' key toggles total visibility (hidden/shown) without affecting collapsed state.
+ * Clicking the emoji tab toggles collapsed/expanded.
  */
 export default class AudioPanel {
   constructor(audioController) {
     this.controller = audioController;
-    this.visible = false;
+    this.visible = true;     // m key toggles this
+    this.expanded = false;   // click emoji toggles this
     this._panel = null;
     this._statusEl = null;
     this._energyBar = null;
@@ -18,9 +20,10 @@ export default class AudioPanel {
     this._build();
   }
 
+  /** Toggle total visibility (m key) — does not affect expanded/collapsed */
   toggle() {
     this.visible = !this.visible;
-    this._panel.style.display = this.visible ? 'block' : 'none';
+    this._panel.style.display = this.visible ? 'flex' : 'none';
     if (this.visible) {
       this._startEnergyLoop();
     } else {
@@ -29,45 +32,44 @@ export default class AudioPanel {
     console.log(`[AudioPanel] ${this.visible ? 'Shown' : 'Hidden'}`);
   }
 
-  show() {
-    if (!this.visible) this.toggle();
-  }
-
-  hide() {
-    if (this.visible) this.toggle();
-  }
+  show() { if (!this.visible) this.toggle(); }
+  hide() { if (this.visible) this.toggle(); }
 
   destroy() {
     this._stopEnergyLoop();
-    if (this._panel) {
-      this._panel.remove();
-      this._panel = null;
-    }
+    if (this._panel) { this._panel.remove(); this._panel = null; }
+  }
+
+  _toggleExpanded() {
+    this.expanded = !this.expanded;
+    this._panel.querySelector('.cp-body').style.display = this.expanded ? 'block' : 'none';
+    this._panel.querySelector('.cp-tab-label').textContent = this.expanded ? '🔊 Audio' : '🔊';
   }
 
   _build() {
     const panel = document.createElement('div');
     panel.id = 'audio-panel';
+    panel.className = 'cp-panel';
     panel.innerHTML = `
-      <div class="ap-header">
-        <span class="ap-title">🔊 Audio</span>
-        <span class="ap-status">off</span>
+      <div class="cp-tab" data-action="toggle-expand">
+        <span class="cp-tab-label">🔊</span>
+        <span class="cp-tab-status ap-status">off</span>
       </div>
-      <div class="ap-body">
+      <div class="cp-body" style="display:none">
         <div class="ap-row">
-          <button class="ap-btn" data-action="stream">▶ Stream</button>
-          <input type="text" class="ap-input" placeholder="stream URL" value="${this.controller.config.defaultStream}">
+          <button class="cp-btn" data-action="stream">▶ Stream</button>
+          <input type="text" class="cp-input" placeholder="stream URL" value="${this.controller.config.defaultStream}">
         </div>
         <div class="ap-row">
-          <button class="ap-btn" data-action="file">📁 File</button>
+          <button class="cp-btn" data-action="file">📁 File</button>
           <input type="file" class="ap-file-input" accept="audio/*" style="display:none">
           <span class="ap-filename">no file</span>
         </div>
         <div class="ap-row">
-          <button class="ap-btn" data-action="mic">🎤 Mic</button>
+          <button class="cp-btn" data-action="mic">🎤 Mic</button>
         </div>
         <div class="ap-row">
-          <button class="ap-btn ap-btn-stop" data-action="stop">⏹ Stop</button>
+          <button class="cp-btn cp-btn-stop" data-action="stop">⏹ Stop</button>
         </div>
         <div class="ap-energy">
           <div class="ap-energy-bar"></div>
@@ -82,20 +84,21 @@ export default class AudioPanel {
       </div>
     `;
 
-    this._applyStyles(panel);
+    this._applyStyles();
     document.body.appendChild(panel);
-    // Start visible so the user sees the audio controls immediately.
-    // Press 'm' to hide/show.
-    this.visible = true;
-    this._startEnergyLoop();
 
     this._panel = panel;
     this._statusEl = panel.querySelector('.ap-status');
     this._energyBar = panel.querySelector('.ap-energy-bar');
-    this._streamUrlInput = panel.querySelector('.ap-input');
+    this._streamUrlInput = panel.querySelector('.cp-input');
     this._bandFills = {};
     panel.querySelectorAll('.ap-band').forEach((el) => {
       this._bandFills[el.dataset.band] = el.querySelector('.ap-band-fill');
+    });
+
+    // Collapse/expand on tab click
+    panel.querySelector('[data-action="toggle-expand"]').addEventListener('click', () => {
+      this._toggleExpanded();
     });
 
     // Wire up buttons
@@ -129,16 +132,19 @@ export default class AudioPanel {
       this._updateStatus('off');
     });
 
-    // Prevent keyboard shortcuts from firing when typing in the URL input
+    // Prevent keyboard shortcuts when typing in URL input
     this._streamUrlInput.addEventListener('keydown', (e) => e.stopPropagation());
     this._streamUrlInput.addEventListener('keyup', (e) => e.stopPropagation());
     this._streamUrlInput.addEventListener('keypress', (e) => e.stopPropagation());
+
+    // Start energy loop since panel is visible by default
+    this._startEnergyLoop();
   }
 
   _updateStatus(mode) {
-    const labels = { stream: '📡 stream', file: '🎵 file', mic: '🎤 mic', off: 'off' };
+    const labels = { stream: '📡', file: '🎵', mic: '🎤', off: 'off' };
     this._statusEl.textContent = labels[mode] || mode;
-    this._statusEl.className = `ap-status ${mode !== 'off' ? 'ap-active' : ''}`;
+    this._statusEl.className = `cp-tab-status ap-status ${mode !== 'off' ? 'ap-active' : ''}`;
   }
 
   _startEnergyLoop() {
@@ -146,10 +152,7 @@ export default class AudioPanel {
       if (!this.visible) return;
       const bands = this.controller.getBands();
       if (bands) {
-        // Overall energy bar
         this._energyBar.style.width = `${bands.energy * 100}%`;
-
-        // Per-band bars
         for (const [band, fill] of Object.entries(this._bandFills)) {
           if (bands[band] !== undefined) {
             fill.style.height = `${bands[band] * 100}%`;
@@ -168,14 +171,18 @@ export default class AudioPanel {
     }
   }
 
-  _applyStyles(panel) {
+  _applyStyles() {
+    if (document.getElementById('control-panel-styles')) return;
+
     const style = document.createElement('style');
+    style.id = 'control-panel-styles';
     style.textContent = `
-      #audio-panel {
+      /* --- Shared control panel styles --- */
+      .cp-panel {
         position: fixed;
-        top: 16px;
-        right: 16px;
-        width: 280px;
+        left: 16px;
+        display: flex;
+        flex-direction: column;
         background: rgba(0, 0, 0, 0.85);
         border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 12px;
@@ -186,35 +193,50 @@ export default class AudioPanel {
         backdrop-filter: blur(10px);
         box-shadow: 0 4px 24px rgba(0,0,0,0.5);
         user-select: none;
+        min-width: 44px;
+        transition: width 0.2s ease;
       }
-      .ap-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 14px;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-      }
-      .ap-title {
-        font-weight: bold;
-        font-size: 13px;
-      }
-      .ap-status {
-        color: #666;
-        font-size: 11px;
-      }
-      .ap-status.ap-active {
-        color: #4fc3f7;
-      }
-      .ap-body {
-        padding: 10px 14px;
-      }
-      .ap-row {
+      #audio-panel { top: 16px; }
+      #hand-panel  { top: 76px; }
+
+      .cp-tab {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-bottom: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.15s;
       }
-      .ap-btn {
+      .cp-tab:hover {
+        background: rgba(255,255,255,0.04);
+        border-radius: 12px 12px 0 0;
+      }
+      .cp-panel:has(.cp-body[style*="display: none"]) .cp-tab,
+      .cp-panel:has(.cp-body[style*="display:none"]) .cp-tab {
+        border-radius: 12px;
+      }
+      .cp-panel:has(.cp-body[style*="block"]) .cp-tab {
+        border-bottom-color: rgba(255,255,255,0.1);
+      }
+      .cp-tab-label {
+        font-weight: bold;
+        font-size: 15px;
+      }
+      .cp-tab-status {
+        color: #666;
+        font-size: 11px;
+        margin-left: auto;
+      }
+      .cp-tab-status.ap-active { color: #4fc3f7; }
+      .cp-tab-status.hp-active { color: #81c784; }
+
+      .cp-body {
+        padding: 10px 14px;
+        width: 260px;
+      }
+
+      .cp-btn {
         background: rgba(255,255,255,0.08);
         border: 1px solid rgba(255,255,255,0.15);
         color: #ddd;
@@ -226,18 +248,22 @@ export default class AudioPanel {
         white-space: nowrap;
         transition: background 0.15s;
       }
-      .ap-btn:hover {
-        background: rgba(255,255,255,0.15);
-      }
-      .ap-btn-stop {
+      .cp-btn:hover { background: rgba(255,255,255,0.15); }
+      .cp-btn:disabled { opacity: 0.5; cursor: wait; }
+      .cp-btn-stop {
         background: rgba(255,80,80,0.15);
         border-color: rgba(255,80,80,0.3);
         width: 100%;
       }
-      .ap-btn-stop:hover {
-        background: rgba(255,80,80,0.25);
+      .cp-btn-stop:hover { background: rgba(255,80,80,0.25); }
+      .cp-btn-start {
+        background: rgba(129,199,132,0.15);
+        border-color: rgba(129,199,132,0.3);
+        width: 100%;
       }
-      .ap-input {
+      .cp-btn-start:hover { background: rgba(129,199,132,0.25); }
+
+      .cp-input {
         flex: 1;
         background: rgba(255,255,255,0.06);
         border: 1px solid rgba(255,255,255,0.12);
@@ -248,61 +274,68 @@ export default class AudioPanel {
         font-family: inherit;
         min-width: 0;
       }
-      .ap-input:focus {
+      .cp-input:focus {
         outline: none;
         border-color: rgba(79,195,247,0.5);
       }
+
+      /* --- Audio-specific --- */
+      .ap-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
       .ap-filename {
-        color: #666;
-        font-size: 10px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 120px;
+        color: #666; font-size: 10px;
+        overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; max-width: 120px;
       }
       .ap-energy {
         height: 4px;
         background: rgba(255,255,255,0.08);
-        border-radius: 2px;
-        overflow: hidden;
+        border-radius: 2px; overflow: hidden;
         margin: 12px 0 8px;
       }
       .ap-energy-bar {
-        height: 100%;
-        width: 0%;
+        height: 100%; width: 0%;
         background: linear-gradient(90deg, #4fc3f7, #e040fb);
-        border-radius: 2px;
-        transition: width 0.05s;
+        border-radius: 2px; transition: width 0.05s;
       }
       .ap-bands {
-        display: flex;
-        gap: 4px;
-        height: 40px;
+        display: flex; gap: 4px; height: 40px;
         align-items: flex-end;
       }
       .ap-band {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 100%;
-        position: relative;
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; height: 100%; position: relative;
       }
       .ap-band-fill {
         width: 100%;
         background: linear-gradient(0deg, #4fc3f7, #e040fb);
         border-radius: 2px 2px 0 0;
-        position: absolute;
-        bottom: 14px;
-        height: 0%;
-        max-height: calc(100% - 14px);
+        position: absolute; bottom: 14px;
+        height: 0%; max-height: calc(100% - 14px);
         transition: height 0.05s;
       }
       .ap-band span {
-        position: absolute;
-        bottom: 0;
-        font-size: 8px;
-        color: #666;
+        position: absolute; bottom: 0;
+        font-size: 8px; color: #666;
+      }
+
+      /* --- Hand-specific --- */
+      .hp-row { margin-bottom: 8px; }
+      .hp-gesture {
+        display: flex; gap: 6px; align-items: center;
+        margin: 10px 0 8px; padding: 6px 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+      }
+      .hp-gesture-label { color: #666; font-size: 10px; }
+      .hp-gesture-value { color: #81c784; font-size: 12px; }
+      .hp-help {
+        font-size: 10px; color: #888;
+        line-height: 1.6; padding-top: 6px;
+        border-top: 1px solid rgba(255,255,255,0.06);
       }
     `;
     document.head.appendChild(style);

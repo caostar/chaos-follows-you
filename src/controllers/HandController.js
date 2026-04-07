@@ -116,6 +116,10 @@ export default class HandController {
 
     this.active = false;
 
+    if (this._detectionTimer) {
+      clearTimeout(this._detectionTimer);
+      this._detectionTimer = null;
+    }
     if (this._animFrame) {
       cancelAnimationFrame(this._animFrame);
       this._animFrame = null;
@@ -150,13 +154,38 @@ export default class HandController {
 
   toggleDebug() {
     this._debugVisible = !this._debugVisible;
-    if (this._debugCanvas) {
-      this._debugCanvas.style.display = this._debugVisible ? 'block' : 'none';
-    }
-    if (this._video) {
-      this._video.style.display = this._debugVisible ? 'block' : 'none';
+    if (this._debugVisible) {
+      this._showDebugOverlay();
+    } else {
+      this._hideDebugOverlay();
     }
     console.log(`[HandMode] Debug overlay ${this._debugVisible ? 'shown' : 'hidden'}`);
+  }
+
+  _showDebugOverlay() {
+    if (this._video) {
+      this._video.style.cssText = `
+        position: fixed; bottom: 8px; left: 8px; width: 160px; height: 120px;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+        z-index: 10001; transform: scaleX(-1); opacity: 0.7;
+      `;
+    }
+    if (this._debugCanvas) {
+      this._debugCanvas.style.display = 'block';
+    }
+  }
+
+  _hideDebugOverlay() {
+    if (this._video) {
+      this._video.style.cssText = `
+        position: fixed; bottom: 8px; left: 8px;
+        width: 1px; height: 1px; opacity: 0;
+        pointer-events: none; z-index: -1;
+      `;
+    }
+    if (this._debugCanvas) {
+      this._debugCanvas.style.display = 'none';
+    }
   }
 
   // --- Private: Initialization ---
@@ -194,12 +223,13 @@ export default class HandController {
     this._video.autoplay = true;
     this._video.playsInline = true;
     this._video.muted = true;
-    // Hidden by default, toggle with 'd'
+    // IMPORTANT: Do NOT use display:none — browsers pause/throttle hidden video
+    // decoding, which breaks MediaPipe detection. Instead use a tiny off-screen
+    // element that gets repositioned when debug mode is toggled on.
     this._video.style.cssText = `
-      position: fixed; bottom: 8px; left: 8px; width: 160px; height: 120px;
-      border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-      z-index: 10001; display: none; transform: scaleX(-1);
-      opacity: 0.7;
+      position: fixed; bottom: 8px; left: 8px;
+      width: 1px; height: 1px; opacity: 0;
+      pointer-events: none; z-index: -1;
     `;
     document.body.appendChild(this._video);
 
@@ -223,8 +253,7 @@ export default class HandController {
 
     if (this.config.showDebugVideo) {
       this._debugVisible = true;
-      this._video.style.display = 'block';
-      this._debugCanvas.style.display = 'block';
+      this._showDebugOverlay();
     }
 
     console.log('[HandMode] Camera ready');
@@ -237,16 +266,18 @@ export default class HandController {
 
     const now = performance.now();
 
-    if (now - this._lastDetectionTime >= this.config.detectionInterval) {
-      this._lastDetectionTime = now;
-
-      if (this._video && this._video.readyState >= 2) {
+    if (this._video && this._video.readyState >= 2) {
+      try {
         const results = this._handLandmarker.detectForVideo(this._video, now);
         this._processResults(results, now);
+      } catch (err) {
+        console.warn('[HandMode] Detection error:', err.message);
       }
     }
 
-    this._animFrame = requestAnimationFrame(() => this._runDetection());
+    // Use setTimeout at detection interval instead of rAF (which fires at 60fps
+    // but we only detect at ~15fps, wasting CPU on empty rAF ticks)
+    this._detectionTimer = setTimeout(() => this._runDetection(), this.config.detectionInterval);
   }
 
   _processResults(results, now) {
@@ -403,13 +434,23 @@ export default class HandController {
 
     if (!results.landmarks || results.landmarks.length === 0) return;
 
+    // MediaPipe hand skeleton: each connection is {start, end}
+    // Define manually since HAND_CONNECTIONS format varies across versions
+    const CONNECTIONS = [
+      [0,1],[1,2],[2,3],[3,4],       // thumb
+      [0,5],[5,6],[6,7],[7,8],       // index
+      [0,9],[9,10],[10,11],[11,12],  // middle
+      [0,13],[13,14],[14,15],[15,16],// ring
+      [0,17],[17,18],[18,19],[19,20],// pinky
+      [5,9],[9,13],[13,17],          // palm
+    ];
+
     for (const landmarks of results.landmarks) {
       // Draw connections
       ctx.strokeStyle = 'rgba(79, 195, 247, 0.6)';
       ctx.lineWidth = 1;
-      const connections = HandLandmarker.HAND_CONNECTIONS;
-      if (connections) {
-        for (const [start, end] of connections) {
+      for (const [start, end] of CONNECTIONS) {
+        if (landmarks[start] && landmarks[end]) {
           ctx.beginPath();
           ctx.moveTo(landmarks[start].x * w, landmarks[start].y * h);
           ctx.lineTo(landmarks[end].x * w, landmarks[end].y * h);
