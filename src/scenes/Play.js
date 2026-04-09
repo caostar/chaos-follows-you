@@ -183,19 +183,30 @@ export default class Play extends Scene {
       }
     });
 
-    // Hide all menus
+    // Hide all UI (panels, debug button, cursor)
+    this._uiHidden = false;
     keyboardjs.bind('q', () => {
-      const allVisible = this.audioPanel.visible && this.handPanel.visible && this.controlsPanel.visible;
-      if (allVisible) {
+      this._uiHidden = !this._uiHidden;
+      if (this._uiHidden) {
         this.audioPanel.hide();
         this.handPanel.hide();
         this.controlsPanel.hide();
-        console.log('[Mode] All panels hidden');
+        // Hide hand debug expand button
+        const expandBtn = document.getElementById('hand-debug-expand');
+        if (expandBtn) expandBtn.style.display = 'none';
+        // Hide cursor
+        document.body.style.cursor = 'none';
+        console.log('[Mode] All UI hidden');
       } else {
         this.audioPanel.show();
         this.handPanel.show();
         this.controlsPanel.show();
-        console.log('[Mode] All panels shown');
+        // Restore hand debug expand button if debug is active
+        const expandBtn = document.getElementById('hand-debug-expand');
+        if (expandBtn && this.handController._debugVisible) expandBtn.style.display = 'block';
+        // Restore cursor
+        document.body.style.cursor = '';
+        console.log('[Mode] All UI shown');
       }
     });
   }
