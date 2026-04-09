@@ -8,8 +8,10 @@ export default class Splash extends Scene {
     super();
 
     this.loadingText = new Text('0%', {
-      fontSize: 75,
-      fill: 0xff00ff,
+      fontFamily: '"SF Mono", "Fira Code", "Consolas", monospace',
+      fontSize: 48,
+      fill: 0xeeeeee,
+      fontWeight: 'bold',
     });
 
     this.config = config.scenes.Splash;

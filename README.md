@@ -28,8 +28,8 @@ Press `h` to open the hand panel. Uses MediaPipe HandLandmarker (WASM + GPU) for
 |---------|--------|
 | Point (index finger) | Move emitter |
 | Pinch (thumb + index) | New chaos star |
-| Open hand | Zoom in |
-| Fist | Zoom out |
+| Two hands spread apart | Zoom in |
+| Two hands come together | Zoom out |
 
 ### Runtime Configuration
 All behaviors are controlled by JSON files in `public/`. Edit and refresh — no rebuild needed:
@@ -85,6 +85,9 @@ Open http://localhost:5173 and move your mouse.
 | `m` | Toggle audio panel visibility |
 | `h` | Toggle hand tracking panel visibility |
 | `d` | Toggle hand tracking debug video (when tracking active) |
+| `g` | Toggle controls panel |
+| `f` | Toggle browser fullscreen |
+| `q` | Hide/show all panels |
 
 ---
 
@@ -210,6 +213,41 @@ Works in all modern browsers with WebGL. Hand tracking and audio features requir
 - **Microphone**: Microphone permission, HTTPS (or localhost)
 
 Tested on Chrome, Firefox, Safari, and Edge.
+
+---
+
+## Built-in Radio Streams
+
+The audio panel includes curated free internet radio streams. Select any stream from the dropdown to start audio-reactive visuals instantly.
+
+| Country | Station | Genre | URL |
+|---------|---------|-------|-----|
+| 🇧🇷 Brazil | UFPel Radio | Pop/Eclectic | `icecast2.ufpel.edu.br/live` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Groove Salad | Ambient/Downtempo | `ice1.somafm.com/groovesalad-256-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Drone Zone | Space Ambient | `ice1.somafm.com/dronezone-256-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) DEF CON | Dark Electronic | `ice1.somafm.com/defcon-256-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Deep Space One | Deep House | `ice1.somafm.com/deepspaceone-128-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Left Coast 70s | Classic Rock | `ice1.somafm.com/seventies-320-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Lush | Sensual Downtempo | `ice1.somafm.com/lush-128-mp3` |
+| 🇺🇸 USA | [SomaFM](https://somafm.com) Space Station Soma | Ambient | `ice1.somafm.com/spacestation-128-mp3` |
+| 🇺🇸 USA | [Radio Paradise](https://radioparadise.com) | Eclectic Rock | `stream.radioparadise.com/aac-320` |
+| 🇺🇸 USA | [181.fm](https://181.fm) Classical | Orchestral | `listen.181fm.com/181-classical_128k.mp3` |
+| 🇫🇷 France | [FIP](https://www.radiofrance.fr/fip) | Eclectic World/Jazz | `icecast.radiofrance.fr/fip-midfi.mp3` |
+| 🇫🇷 France | [FIP Jazz](https://www.radiofrance.fr/fip) | 24/7 Jazz | `icecast.radiofrance.fr/fipjazz-midfi.mp3` |
+| 🇫🇷 France | [FIP Electro](https://www.radiofrance.fr/fip) | Electronic | `icecast.radiofrance.fr/fipelectro-midfi.mp3` |
+| 🇫🇷 France | [FIP World](https://www.radiofrance.fr/fip) | World Music | `icecast.radiofrance.fr/fipworld-midfi.mp3` |
+| 🇫🇷 France | [FIP Hip-Hop](https://www.radiofrance.fr/fip) | Rap/Hip-Hop | `icecast.radiofrance.fr/fiphiphop-midfi.mp3` |
+| 🌐 Internet | [Plaza One](https://plaza.one) | Vaporwave/Future Funk | `radio.plaza.one/mp3` |
+
+**Thank you** to these stations for providing free, high-quality audio streams:
+- [**SomaFM**](https://somafm.com) — Listener-supported, commercial-free internet radio from San Francisco. 30+ unique channels. Please consider [donating](https://somafm.com/support/).
+- [**Radio France / FIP**](https://www.radiofrance.fr/fip) — French public radio with exceptional eclectic programming. FIP's thematic channels (Jazz, Electro, World, Hip-Hop) are some of the best curated streams available.
+- [**Radio Paradise**](https://radioparadise.com) — Listener-supported eclectic rock from Paradise, California. A beloved internet radio institution since 2000.
+- [**181.fm**](https://181.fm) — Free internet radio with dozens of genre-specific channels.
+- [**Plaza One**](https://plaza.one) — 24/7 vaporwave and future funk radio. A love letter to internet culture.
+- **UFPel Radio** — University radio from Universidade Federal de Pelotas, Brazil.
+
+You can also paste any direct stream URL using the "Custom URL..." option in the dropdown.
 
 ---
 

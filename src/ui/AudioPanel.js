@@ -6,6 +6,8 @@
  * 'm' key toggles total visibility (hidden/shown) without affecting collapsed state.
  * Clicking the emoji tab toggles collapsed/expanded.
  */
+import RADIO_STREAMS from './radioStreams.js';
+
 export default class AudioPanel {
   constructor(audioController) {
     this.controller = audioController;
@@ -56,9 +58,12 @@ export default class AudioPanel {
         <span class="cp-tab-status ap-status">off</span>
       </div>
       <div class="cp-body" style="display:none">
-        <div class="ap-row">
+        <div class="ap-row ap-stream-row">
           <button class="cp-btn" data-action="stream">▶ Stream</button>
-          <input type="text" class="cp-input" placeholder="stream URL" value="${this.controller.config.defaultStream}">
+          <select class="ap-stream-select"></select>
+        </div>
+        <div class="ap-row ap-custom-url" style="display:none">
+          <input type="text" class="cp-input" placeholder="paste stream URL" value="">
         </div>
         <div class="ap-row">
           <button class="cp-btn" data-action="file">📁 File</button>
@@ -90,10 +95,30 @@ export default class AudioPanel {
     this._panel = panel;
     this._statusEl = panel.querySelector('.ap-status');
     this._energyBar = panel.querySelector('.ap-energy-bar');
-    this._streamUrlInput = panel.querySelector('.cp-input');
     this._bandFills = {};
     panel.querySelectorAll('.ap-band').forEach((el) => {
       this._bandFills[el.dataset.band] = el.querySelector('.ap-band-fill');
+    });
+
+    // Populate stream dropdown
+    this._streamSelect = panel.querySelector('.ap-stream-select');
+    this._customUrlInput = panel.querySelector('.cp-input');
+    this._customUrlRow = panel.querySelector('.ap-custom-url');
+    for (const stream of RADIO_STREAMS) {
+      const opt = document.createElement('option');
+      opt.value = stream.url;
+      opt.textContent = stream.label;
+      this._streamSelect.appendChild(opt);
+    }
+    this._streamSelect.addEventListener('change', () => {
+      if (this._streamSelect.value === 'custom') {
+        this._customUrlRow.style.display = 'flex';
+        this._customUrlInput.focus();
+      } else {
+        this._customUrlRow.style.display = 'none';
+        // Auto-play on selection
+        this._playStream(this._streamSelect.value);
+      }
     });
 
     // Collapse/expand on tab click
@@ -101,11 +126,15 @@ export default class AudioPanel {
       this._toggleExpanded();
     });
 
-    // Wire up buttons
+    // Wire up buttons — stream button plays custom URL or re-plays selected stream
     panel.querySelector('[data-action="stream"]').addEventListener('click', () => {
-      const url = this._streamUrlInput.value.trim();
-      this.controller.start('stream', url || undefined);
-      this._updateStatus('stream');
+      let url;
+      if (this._streamSelect.value === 'custom') {
+        url = this._customUrlInput.value.trim();
+      } else {
+        url = this._streamSelect.value;
+      }
+      if (url) this._playStream(url);
     });
 
     const fileInput = panel.querySelector('.ap-file-input');
@@ -132,10 +161,10 @@ export default class AudioPanel {
       this._updateStatus('off');
     });
 
-    // Prevent keyboard shortcuts when typing in URL input
-    this._streamUrlInput.addEventListener('keydown', (e) => e.stopPropagation());
-    this._streamUrlInput.addEventListener('keyup', (e) => e.stopPropagation());
-    this._streamUrlInput.addEventListener('keypress', (e) => e.stopPropagation());
+    // Prevent keyboard shortcuts when typing in custom URL input
+    this._customUrlInput.addEventListener('keydown', (e) => e.stopPropagation());
+    this._customUrlInput.addEventListener('keyup', (e) => e.stopPropagation());
+    this._customUrlInput.addEventListener('keypress', (e) => e.stopPropagation());
 
     // Start energy loop since panel is visible by default
     this._startEnergyLoop();
@@ -162,6 +191,38 @@ export default class AudioPanel {
       this._animFrame = requestAnimationFrame(update);
     };
     this._animFrame = requestAnimationFrame(update);
+  }
+
+  async _playStream(url) {
+    try {
+      await this.controller.start('stream', url);
+      this._updateStatus('stream');
+    } catch (err) {
+      console.error('[AudioPanel] Stream failed:', err);
+      this._updateStatus('off');
+      // Show a non-blocking notification instead of alert
+      this._showError(`Stream failed to load. It may be offline or blocked by CORS.`);
+    }
+  }
+
+  _showError(msg) {
+    let toast = document.getElementById('ap-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ap-toast';
+      toast.style.cssText = `
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(255,60,60,0.9); color: #fff; padding: 10px 20px;
+        border-radius: 8px; font-size: 12px; font-family: inherit;
+        z-index: 30000; pointer-events: none; opacity: 0;
+        transition: opacity 0.3s;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
   }
 
   _stopEnergyLoop() {
@@ -291,6 +352,23 @@ export default class AudioPanel {
         overflow: hidden; text-overflow: ellipsis;
         white-space: nowrap; max-width: 120px;
       }
+      .ap-stream-select {
+        flex: 1;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #ccc;
+        padding: 5px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-family: inherit;
+        min-width: 0;
+      }
+      .ap-stream-select:focus {
+        outline: none;
+        border-color: rgba(79,195,247,0.5);
+      }
+      .ap-stream-row { flex-wrap: nowrap; }
+      .ap-custom-url { margin-top: -4px; }
       .ap-energy {
         height: 4px;
         background: rgba(255,255,255,0.08);

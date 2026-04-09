@@ -80,8 +80,8 @@ export default class HandPanel {
         <div class="hp-help">
           <div>☝️ Index finger &rarr; move</div>
           <div>🤏 Pinch &rarr; new shape</div>
-          <div>🖐️ Open hand &rarr; zoom in</div>
-          <div>✊ Fist &rarr; zoom out</div>
+          <div>🤲 Two hands spread &rarr; zoom in</div>
+          <div>🤲 Two hands close &rarr; zoom out</div>
         </div>
       </div>
     `;
@@ -105,6 +105,7 @@ export default class HandPanel {
         this.controller.stop();
         this._updateStatus('off');
         this._startBtn.textContent = '✋ Start Tracking';
+        this._debugBtn.disabled = true;
       } else {
         this._startBtn.textContent = '⏳ Loading model...';
         this._startBtn.disabled = true;
@@ -112,17 +113,23 @@ export default class HandPanel {
           await this.controller.start();
           this._updateStatus('tracking');
           this._startBtn.textContent = '⏹ Stop Tracking';
+          this._debugBtn.disabled = false;
         } catch (err) {
           this._startBtn.textContent = '✋ Start Tracking';
           this._updateStatus('error');
+          this._debugBtn.disabled = true;
         }
         this._startBtn.disabled = false;
       }
     });
 
-    // Debug toggle
-    panel.querySelector('[data-action="debug"]').addEventListener('click', () => {
-      this.controller.toggleDebug();
+    // Debug toggle — only works when tracking is active
+    this._debugBtn = panel.querySelector('[data-action="debug"]');
+    this._debugBtn.disabled = true;
+    this._debugBtn.addEventListener('click', () => {
+      if (this.controller.active) {
+        this.controller.toggleDebug();
+      }
     });
 
     // Start status loop since panel is visible by default
@@ -140,7 +147,7 @@ export default class HandPanel {
       if (!this.visible) return;
       if (this.controller.active) {
         const gesture = this.controller._lastGesture;
-        const gestureLabels = { open: '🖐️ open', fist: '✊ fist' };
+        const gestureLabels = { point: '☝️ pointing', 'two-hands': '🤲 two hands' };
         this._gestureEl.textContent = gestureLabels[gesture] || '☝️ pointing';
       } else {
         this._gestureEl.textContent = '—';

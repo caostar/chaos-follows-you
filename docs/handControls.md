@@ -4,17 +4,22 @@ The file `public/handControls.json` controls hand tracking behavior. Edit it and
 
 **Toggle the hand panel**: Press `h` to show/hide the floating hand control panel.
 **Toggle debug video**: Press `d` (while tracking is active) to see the camera feed with landmark overlay.
+**Expand debug video**: Click the ⊕ button on the debug preview to go fullscreen (low-alpha video with bright landmarks).
 
 ---
 
 ## Gestures
 
-| Gesture | Action | Description |
-|---------|--------|-------------|
-| ☝️ Point (index finger) | Move emitter | The emitter follows your index fingertip in real-time |
-| 🤏 Pinch (thumb + index) | New chaos star | Bring thumb and index together to generate a new star design |
-| 🖐️ Open hand | Zoom in | Extend all 4 fingers to zoom the camera in |
-| ✊ Fist | Zoom out | Curl all 4 fingers to zoom the camera out |
+Supports **up to 2 hands** simultaneously.
+
+| Gesture | Hands | Action | Description |
+|---------|-------|--------|-------------|
+| ☝️ Point (index finger) | 1 | Move emitter | The emitter follows your index fingertip in real-time |
+| 🤏 Pinch (thumb + index) | 1 or 2 | New chaos star | Bring thumb and index together on either hand |
+| 🤲 Spread apart | 2 | Zoom in | Move both hands away from each other |
+| 🤲 Come together | 2 | Zoom out | Move both hands toward each other |
+
+The two-hand zoom feels like physically stretching or compressing the view — it tracks the delta between your wrists frame by frame, so it's smooth and proportional.
 
 ---
 
@@ -34,14 +39,13 @@ The file `public/handControls.json` controls hand tracking behavior. Edit it and
 |-----------|------|---------|-------------|
 | `pinchThreshold` | number | `0.06` | Distance (normalized 0-1) between thumb tip and index tip to trigger a pinch. Lower = need to pinch tighter. Higher = more forgiving. |
 | `pinchCooldown` | number (ms) | `500` | Minimum time between pinch triggers. Prevents rapid-fire shape changes from holding a pinch. |
-| `gestureCooldown` | number (ms) | `800` | Minimum time between zoom gestures (open hand / fist). |
 
-### Zoom
+### Two-Hand Zoom
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `zoomFactor` | number | `1.3` | How much each zoom gesture zooms (multiplier). Higher = more dramatic zoom per gesture. |
-| `zoomDuration` | number (s) | `2.0` | Duration of the zoom animation. |
+| `twoHandZoomThreshold` | number | `0.015` | Minimum wrist distance change per frame to trigger zoom. Lower = more sensitive. Higher = need bigger movements. |
+| `twoHandZoomSensitivity` | number | `3.0` | How much hand distance maps to zoom speed. Higher = faster zoom for the same hand movement. |
 
 ### Movement
 
@@ -54,6 +58,7 @@ The file `public/handControls.json` controls hand tracking behavior. Edit it and
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `showDebugVideo` | boolean | `false` | Show camera feed + landmarks on startup (without pressing `d`). |
+| `debugAlpha` | number | `0.2` | Opacity of the video feed in expanded fullscreen mode (0-1). Landmarks always render at full opacity. |
 
 ---
 
@@ -71,6 +76,7 @@ Hand tracking **coexists** with all other modes:
 
 - MediaPipe HandLandmarker uses WebAssembly + GPU delegation — much faster than the old TensorFlow.js approach
 - Detection runs at ~15fps by default to keep CPU usage reasonable
+- Tracking 2 hands is slightly more expensive than 1, but still fast on modern hardware
 - The model is loaded from CDN on first activation (~5MB download, cached after)
 - Lower `detectionInterval` (e.g. `33` for 30fps) gives smoother tracking at higher CPU cost
 - If tracking is laggy, increase `detectionInterval` to `100` (10fps)
@@ -86,8 +92,7 @@ Hand tracking **coexists** with all other modes:
   "smoothing": 0.1,
   "pinchThreshold": 0.05,
   "pinchCooldown": 300,
-  "gestureCooldown": 500,
-  "zoomFactor": 1.5
+  "twoHandZoomSensitivity": 5.0
 }
 ```
 30fps detection, minimal smoothing, tight pinch threshold. Feels like directly controlling the particles.
@@ -99,22 +104,21 @@ Hand tracking **coexists** with all other modes:
   "smoothing": 0.6,
   "pinchThreshold": 0.08,
   "pinchCooldown": 1000,
-  "gestureCooldown": 1500,
-  "zoomFactor": 1.2
+  "twoHandZoomSensitivity": 1.5,
+  "twoHandZoomThreshold": 0.03
 }
 ```
-10fps detection with heavy smoothing. Gestures need to be held deliberately. Good for performances.
+10fps detection with heavy smoothing. Needs bigger hand movements to trigger zoom. Good for performances.
 
-### "Zoom DJ" — Gesture-focused
+### "Zoom sculptor" — Focus on two-hand zoom
 ```json
 {
   "detectionInterval": 50,
   "smoothing": 0.3,
   "pinchThreshold": 0.07,
   "pinchCooldown": 200,
-  "gestureCooldown": 400,
-  "zoomFactor": 2.0,
-  "zoomDuration": 1.0
+  "twoHandZoomSensitivity": 6.0,
+  "twoHandZoomThreshold": 0.01
 }
 ```
-Fast gesture response with dramatic zoom. Great for live visual performances.
+Very sensitive two-hand zoom — small hand movements produce big zoom changes. Great for sculpting the view in real-time.

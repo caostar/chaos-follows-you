@@ -13,23 +13,22 @@
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
 const DEFAULT_CONFIG = {
-  // Detection runs every N ms (lower = smoother but more CPU)
-  detectionInterval: 66, // ~15fps
-  // Minimum confidence to accept a detection
+  // "Zoom sculptor" preset — sensitive detection, responsive zoom
+  detectionInterval: 50,
   minDetectionConfidence: 0.5,
   minTrackingConfidence: 0.5,
-  // Pinch threshold: distance between thumb tip and index tip (normalized 0-1)
-  pinchThreshold: 0.06,
-  // Cooldowns (ms)
-  pinchCooldown: 500,
-  gestureCooldown: 800,
-  // Zoom
-  zoomFactor: 1.3,
-  zoomDuration: 2.0,
+  pinchThreshold: 0.07,
+  pinchCooldown: 200,
+  // Two-hand zoom: triggers a smooth random zoom in the detected direction
+  twoHandZoomThreshold: 0.02,
+  twoHandZoomCooldown: 800,       // ms between zoom gestures
+  twoHandZoomRange: { min: 1.3, max: 2.5 }, // random zoom factor range
+  twoHandZoomDuration: { min: 1.5, max: 3.0 }, // smooth animation duration
   // Movement smoothing (0 = no smoothing, 1 = frozen)
   smoothing: 0.3,
   // Debug overlay
   showDebugVideo: false,
+  debugAlpha: 0.2,
 };
 
 // Landmark indices (MediaPipe hand model)
@@ -63,6 +62,11 @@ export default class HandController {
     this._debugCanvas = null;
     this._debugCtx = null;
     this._debugVisible = false;
+    this._debugExpanded = false;
+    this._expandBtn = null;
+    // Two-hand zoom tracking
+    this._prevHandDist = null;
+    this._lastZoomTime = 0;
   }
 
   /**
@@ -70,7 +74,7 @@ export default class HandController {
    */
   async loadConfig() {
     try {
-      const resp = await fetch('/handControls.json');
+      const resp = await fetch(`${import.meta.env.BASE_URL}handControls.json`);
       if (resp.ok) {
         const json = await resp.json();
         Object.assign(this.config, json);
@@ -101,9 +105,20 @@ export default class HandController {
       this._smoothX = null;
       this._smoothY = null;
       this._lastDetectionTime = 0;
+      this._prevHandDist = null;
+      this._lastZoomTime = 0;
       this._runDetection();
 
-      console.log('[HandMode] Active — tracking hands');
+      // Auto-enable debug video in expanded (fullscreen) mode
+      this._debugVisible = true;
+      this._debugExpanded = true;
+      this._showDebugOverlay();
+      if (this._expandBtn) {
+        this._expandBtn.textContent = '⊖';
+        this._updateExpandBtnPosition();
+      }
+
+      console.log('[HandMode] Active — tracking hands (debug fullscreen)');
     } catch (err) {
       console.error('[HandMode] Failed to start:', err);
       this.stop();
@@ -125,6 +140,13 @@ export default class HandController {
       this._animFrame = null;
     }
 
+    // Hide debug overlay when stopping
+    if (this._debugVisible) {
+      this._debugVisible = false;
+      this._debugExpanded = false;
+      this._hideDebugOverlay();
+    }
+
     console.log('[HandMode] Stopped');
   }
 
@@ -139,6 +161,11 @@ export default class HandController {
     if (this._video) {
       this._video.remove();
       this._video = null;
+    }
+
+    if (this._expandBtn) {
+      this._expandBtn.remove();
+      this._expandBtn = null;
     }
 
     if (this._debugCanvas) {
@@ -162,17 +189,27 @@ export default class HandController {
     console.log(`[HandMode] Debug overlay ${this._debugVisible ? 'shown' : 'hidden'}`);
   }
 
-  _showDebugOverlay() {
-    if (this._video) {
-      this._video.style.cssText = `
-        position: fixed; bottom: 8px; left: 8px; width: 160px; height: 120px;
-        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-        z-index: 10001; transform: scaleX(-1); opacity: 0.7;
-      `;
+  toggleDebugExpand() {
+    this._debugExpanded = !this._debugExpanded;
+    if (this._debugVisible) {
+      this._applyDebugLayout();
     }
+    if (this._expandBtn) {
+      this._expandBtn.textContent = this._debugExpanded ? '⊖' : '⊕';
+      this._updateExpandBtnPosition();
+    }
+    console.log(`[HandMode] Debug ${this._debugExpanded ? 'expanded' : 'collapsed'}`);
+  }
+
+  _showDebugOverlay() {
+    this._applyDebugLayout();
     if (this._debugCanvas) {
       this._debugCanvas.style.display = 'block';
     }
+    if (!this._expandBtn) {
+      this._createExpandBtn();
+    }
+    this._expandBtn.style.display = 'block';
   }
 
   _hideDebugOverlay() {
@@ -185,6 +222,86 @@ export default class HandController {
     }
     if (this._debugCanvas) {
       this._debugCanvas.style.display = 'none';
+    }
+    if (this._expandBtn) {
+      this._expandBtn.style.display = 'none';
+    }
+  }
+
+  _applyDebugLayout() {
+    const expandedAlpha = this.config.debugAlpha ?? 0.2;
+
+    if (this._debugExpanded) {
+      // Fullscreen — behind everything (stars + controls on top)
+      if (this._video) {
+        this._video.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          z-index: 1; transform: scaleX(-1); opacity: ${expandedAlpha};
+          object-fit: cover;
+        `;
+      }
+      if (this._debugCanvas) {
+        this._debugCanvas.width = window.innerWidth;
+        this._debugCanvas.height = window.innerHeight;
+        this._debugCanvas.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          z-index: 2; transform: scaleX(-1);
+          pointer-events: none; opacity: 1;
+        `;
+      }
+    } else {
+      // Small corner — full opacity so the preview is clearly visible
+      if (this._video) {
+        this._video.style.cssText = `
+          position: fixed; bottom: 8px; left: 8px; width: 160px; height: 120px;
+          border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+          z-index: 1; transform: scaleX(-1); opacity: 0.7;
+        `;
+      }
+      if (this._debugCanvas) {
+        this._debugCanvas.width = 320;
+        this._debugCanvas.height = 240;
+        this._debugCanvas.style.cssText = `
+          position: fixed; bottom: 8px; left: 8px; width: 160px; height: 120px;
+          border-radius: 8px; z-index: 2; transform: scaleX(-1);
+          pointer-events: none; opacity: 1;
+        `;
+      }
+    }
+  }
+
+  _createExpandBtn() {
+    this._expandBtn = document.createElement('button');
+    this._expandBtn.id = 'hand-debug-expand';
+    this._expandBtn.textContent = '⊕';
+    this._expandBtn.style.cssText = `
+      position: fixed; bottom: 100px; left: 136px;
+      width: 28px; height: 28px;
+      background: rgba(0,0,0,0.7); color: #eee;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      font-size: 16px; cursor: pointer; z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; line-height: 1;
+      transition: background 0.15s;
+    `;
+    this._expandBtn.addEventListener('click', () => this.toggleDebugExpand());
+    // Reposition when expanded
+    this._updateExpandBtnPosition();
+    document.body.appendChild(this._expandBtn);
+  }
+
+  _updateExpandBtnPosition() {
+    if (!this._expandBtn) return;
+    if (this._debugExpanded) {
+      this._expandBtn.style.top = '8px';
+      this._expandBtn.style.right = '8px';
+      this._expandBtn.style.bottom = 'auto';
+      this._expandBtn.style.left = 'auto';
+    } else {
+      this._expandBtn.style.top = 'auto';
+      this._expandBtn.style.right = 'auto';
+      this._expandBtn.style.bottom = '100px';
+      this._expandBtn.style.left = '136px';
     }
   }
 
@@ -203,7 +320,7 @@ export default class HandController {
         delegate: 'GPU',
       },
       runningMode: 'VIDEO',
-      numHands: 1,
+      numHands: 2,
       minHandDetectionConfidence: this.config.minDetectionConfidence,
       minTrackingConfidence: this.config.minTrackingConfidence,
     });
@@ -266,6 +383,12 @@ export default class HandController {
 
     const now = performance.now();
 
+    // Keep debug video alpha in sync with config (for live controls editing)
+    if (this._debugVisible && this._video) {
+      const alpha = this._debugExpanded ? (this.config.debugAlpha ?? 0.2) : 0.7;
+      this._video.style.opacity = alpha;
+    }
+
     if (this._video && this._video.readyState >= 2) {
       try {
         const results = this._handLandmarker.detectForVideo(this._video, now);
@@ -286,39 +409,50 @@ export default class HandController {
       this._drawDebug(results);
     }
 
-    if (!results.landmarks || results.landmarks.length === 0) return;
-
-    const landmarks = results.landmarks[0]; // First hand
-
-    // 1. Move emitter to index finger tip
-    this._trackFinger(landmarks);
-
-    // 2. Check for pinch (thumb + index)
-    if (now - this._lastPinchTime > this.config.pinchCooldown) {
-      if (this._isPinching(landmarks)) {
-        this._lastPinchTime = now;
-        this.play.newChaos(this.play);
-        console.log('[HandMode] Pinch → new shape');
-      }
+    if (!results.landmarks || results.landmarks.length === 0) {
+      this._prevHandDist = null;
+      return;
     }
 
-    // 3. Check for open hand / fist (zoom gestures)
-    if (now - this._lastGestureTime > this.config.gestureCooldown) {
-      const gesture = this._detectGesture(landmarks);
-      if (gesture && gesture !== this._lastGesture) {
-        this._lastGestureTime = now;
-        this._lastGesture = gesture;
+    const numHands = results.landmarks.length;
 
-        if (gesture === 'open') {
-          this._zoomGesture('in');
-          console.log('[HandMode] Open hand → zoom in');
-        } else if (gesture === 'fist') {
-          this._zoomGesture('out');
-          console.log('[HandMode] Fist → zoom out');
+    if (numHands === 1) {
+      const landmarks = results.landmarks[0];
+      this._prevHandDist = null; // Reset two-hand tracking
+
+      // Single hand: index finger moves emitter
+      this._trackFinger(landmarks);
+
+      // Single hand: pinch triggers new shape
+      if (now - this._lastPinchTime > this.config.pinchCooldown) {
+        if (this._isPinching(landmarks)) {
+          this._lastPinchTime = now;
+          this.play.newChaos(this.play);
+          console.log('[HandMode] Pinch → new shape');
         }
-      } else if (!gesture) {
-        this._lastGesture = null;
       }
+
+      this._lastGesture = 'point';
+    } else if (numHands === 2) {
+      // Two hands: use the right hand (or first detected) for emitter
+      this._trackFinger(results.landmarks[0]);
+
+      // Two hands: check pinch on either hand
+      if (now - this._lastPinchTime > this.config.pinchCooldown) {
+        for (const landmarks of results.landmarks) {
+          if (this._isPinching(landmarks)) {
+            this._lastPinchTime = now;
+            this.play.newChaos(this.play);
+            console.log('[HandMode] Pinch → new shape');
+            break;
+          }
+        }
+      }
+
+      // Two hands: distance between hands controls zoom
+      this._handleTwoHandZoom(results.landmarks[0], results.landmarks[1], now);
+
+      this._lastGesture = 'two-hands';
     }
   }
 
@@ -349,7 +483,10 @@ export default class HandController {
       this._smoothY = this._smoothY * s + worldY * (1 - s);
     }
 
-    this.play.moveEmitter(this._smoothX, this._smoothY, 0.15, 'none');
+    // Use a tween duration slightly longer than the detection interval
+    // so GSAP smoothly interpolates between positions instead of jumping
+    const tweenDuration = (this.config.detectionInterval / 1000) * 1.5;
+    this.play.moveEmitter(this._smoothX, this._smoothY, tweenDuration, 'power2.out');
   }
 
   // --- Private: Gesture detection ---
@@ -362,41 +499,47 @@ export default class HandController {
   }
 
   /**
-   * Detect open hand vs fist by checking if fingertips are above their MCP joints.
-   * Returns 'open', 'fist', or null (ambiguous).
+   * Two-hand zoom: detect whether hands are spreading apart or coming together,
+   * then fire a single smooth random zoom in that direction.
+   * Instead of tracking frame-by-frame deltas (which causes jitter/blinking),
+   * we detect the direction once, trigger a smooth GSAP-animated zoom,
+   * and then go on cooldown.
    */
-  _detectGesture(landmarks) {
-    const fingers = [
-      { tip: INDEX_TIP, mcp: INDEX_MCP },
-      { tip: MIDDLE_TIP, mcp: MIDDLE_MCP },
-      { tip: RING_TIP, mcp: RING_MCP },
-      { tip: PINKY_TIP, mcp: PINKY_MCP },
-    ];
+  _handleTwoHandZoom(hand1, hand2, now) {
+    const wrist1 = hand1[WRIST];
+    const wrist2 = hand2[WRIST];
+    const currentDist = this._distance2D(wrist1, wrist2);
 
-    let extended = 0;
-    let curled = 0;
-
-    for (const { tip, mcp } of fingers) {
-      // In MediaPipe, y increases downward. A finger is extended if its
-      // tip is higher (lower y) than its MCP joint, relative to the wrist.
-      const tipY = landmarks[tip].y;
-      const mcpY = landmarks[mcp].y;
-
-      if (tipY < mcpY - 0.02) {
-        extended++;
-      } else if (tipY > mcpY + 0.02) {
-        curled++;
-      }
+    if (this._prevHandDist === null) {
+      this._prevHandDist = currentDist;
+      return;
     }
 
-    if (extended >= 4) return 'open';
-    if (curled >= 4) return 'fist';
-    return null;
+    const delta = currentDist - this._prevHandDist;
+    this._prevHandDist = currentDist;
+
+    const threshold = this.config.twoHandZoomThreshold ?? 0.02;
+    const cooldown = this.config.twoHandZoomCooldown ?? 800;
+
+    // Only trigger if movement exceeds threshold AND we're off cooldown
+    if (Math.abs(delta) > threshold && now - this._lastZoomTime > cooldown) {
+      const direction = delta > 0 ? 'in' : 'out';
+      this._smoothZoomGesture(direction);
+      this._lastZoomTime = now;
+    }
   }
 
-  _zoomGesture(direction) {
+  /**
+   * Fire a smooth, slightly randomized zoom in the given direction.
+   * Uses the same goZoom path as keyboard Z/X for consistency.
+   */
+  _smoothZoomGesture(direction) {
     const currentScale = window.viewport?.lastViewport?.scaleX || 1;
-    const factor = this.config.zoomFactor;
+    const range = this.config.twoHandZoomRange ?? { min: 1.3, max: 2.5 };
+    const durRange = this.config.twoHandZoomDuration ?? { min: 1.5, max: 3.0 };
+
+    const factor = range.min + Math.random() * (range.max - range.min);
+    const duration = durRange.min + Math.random() * (durRange.max - durRange.min);
 
     let targetScale;
     if (direction === 'in') {
@@ -405,15 +548,18 @@ export default class HandController {
       targetScale = currentScale / factor;
     }
 
+    // Random position near the emitter for organic feel
     const spawnX = this.play.emitter.spawnPos.x;
     const spawnY = this.play.emitter.spawnPos.y;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
+    const cx = window.innerWidth / 2 + (Math.random() - 0.5) * window.innerWidth * 0.3;
+    const cy = window.innerHeight / 2 + (Math.random() - 0.5) * window.innerHeight * 0.3;
 
     const viewX = cx - spawnX * targetScale;
     const viewY = cy - spawnY * targetScale;
 
-    this.play.goZoom(viewX, viewY, targetScale, this.config.zoomDuration);
+    this.play.newChaos(this.play);
+    this.play.goZoom(viewX, viewY, targetScale, duration);
+    console.log(`[HandMode] Two-hand ${direction} → zoom ${targetScale.toFixed(2)} over ${duration.toFixed(1)}s`);
   }
 
   // --- Private: Helpers ---
@@ -423,6 +569,13 @@ export default class HandController {
     const dy = a.y - b.y;
     const dz = (a.z || 0) - (b.z || 0);
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  /** 2D distance (ignoring depth) — better for hand spread measurement */
+  _distance2D(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   _drawDebug(results) {

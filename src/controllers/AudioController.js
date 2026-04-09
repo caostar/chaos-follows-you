@@ -42,6 +42,12 @@ const DEFAULT_CONFIG = {
     zoomFactor: 1.3,
     duration: 3.0,
   },
+  // Zoom bounds — prevents runaway zoom from audio reactions
+  zoom: {
+    minScale: 0.1,
+    maxScale: 15,
+    homeScale: 1.0,
+  },
 };
 
 export default class AudioController {
@@ -65,7 +71,7 @@ export default class AudioController {
    */
   async loadConfig() {
     try {
-      const resp = await fetch('/audioControls.json');
+      const resp = await fetch(`${import.meta.env.BASE_URL}audioControls.json`);
       if (resp.ok) {
         const json = await resp.json();
         this.config = this._mergeDeep(DEFAULT_CONFIG, json);
@@ -406,9 +412,24 @@ export default class AudioController {
     this.play.moveEmitter(x, y, duration, 'power2.out');
   }
 
+  _clampScale(scale) {
+    const { zoom } = this.config;
+    return Math.max(zoom.minScale, Math.min(zoom.maxScale, scale));
+  }
+
   _zoom(direction, bands) {
     const currentScale = window.viewport?.lastViewport?.scaleX || 1;
-    const factor = 1 + bands.bass * 0.5; // Subtle: 1.0–1.5x based on bass
+    const { zoom } = this.config;
+
+    // If too zoomed in, force zoom out. If too zoomed out, force zoom in.
+    const homeScale = zoom.homeScale ?? 1.0;
+    if (direction === 'in' && currentScale > homeScale * 10) {
+      direction = 'out';
+    } else if (direction === 'out' && currentScale < homeScale * 0.1) {
+      direction = 'in';
+    }
+
+    const factor = 1 + bands.bass * 0.5;
 
     let targetScale;
     if (direction === 'in') {
@@ -416,6 +437,8 @@ export default class AudioController {
     } else {
       targetScale = currentScale / factor;
     }
+
+    targetScale = this._clampScale(targetScale);
 
     const randX = Math.random() * window.innerWidth;
     const randY = Math.random() * window.innerHeight;
@@ -429,9 +452,14 @@ export default class AudioController {
   }
 
   _sustainedZoomIn() {
-    const { sustainedZoom } = this.config;
+    const { sustainedZoom, zoom } = this.config;
     const currentScale = window.viewport?.lastViewport?.scaleX || 1;
-    const targetScale = currentScale * sustainedZoom.zoomFactor;
+
+    // Don't sustain-zoom if already very zoomed in
+    const homeScale = zoom.homeScale ?? 1.0;
+    if (currentScale > homeScale * 8) return;
+
+    const targetScale = this._clampScale(currentScale * sustainedZoom.zoomFactor);
 
     const spawnX = this.play.emitter.spawnPos.x;
     const spawnY = this.play.emitter.spawnPos.y;

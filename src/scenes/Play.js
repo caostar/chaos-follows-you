@@ -10,6 +10,7 @@ import AudioController from '../controllers/AudioController';
 import AudioPanel from '../ui/AudioPanel';
 import HandController from '../controllers/HandController';
 import HandPanel from '../ui/HandPanel';
+import ControlsPanel from '../ui/ControlsPanel';
 
 // Old v4 config (without textures — we inject those at runtime)
 const oldConfig = {
@@ -49,9 +50,11 @@ export default class Play extends Scene {
 
     this.emitter = new Emitter(this, emitterConfig);
 
-    // Store reference to the texture behavior so we can swap textures at runtime
+    // Store reference to the texture behavior so we can swap textures at runtime.
+    // Match by property (has .textures array) instead of constructor.name,
+    // because class names get mangled by minification in production builds.
     this._textureBehavior = this.emitter.initBehaviors.find(
-      (b) => b.constructor?.name?.includes('Texture'),
+      (b) => Array.isArray(b.textures),
     );
 
     this.elapsed = Date.now();
@@ -74,6 +77,13 @@ export default class Play extends Scene {
     this.handController = new HandController(this);
     await this.handController.loadConfig();
     this.handPanel = new HandPanel(this.handController);
+
+    // --- Controls panel ---
+    this.controlsPanel = new ControlsPanel({
+      random: this.randomController,
+      audio: this.audioController,
+      hand: this.handController,
+    });
 
     // --- Input setup ---
     const canvas = document.querySelector('canvas');
@@ -147,6 +157,36 @@ export default class Play extends Scene {
     keyboardjs.bind('d', () => {
       if (this.handController.active) {
         this.handController.toggleDebug();
+      }
+    });
+
+    // Toggle controls panel
+    keyboardjs.bind('g', () => {
+      this.controlsPanel.toggle();
+    });
+
+    // Browser fullscreen toggle
+    keyboardjs.bind('f', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Hide all menus
+    keyboardjs.bind('q', () => {
+      const allVisible = this.audioPanel.visible && this.handPanel.visible && this.controlsPanel.visible;
+      if (allVisible) {
+        this.audioPanel.hide();
+        this.handPanel.hide();
+        this.controlsPanel.hide();
+        console.log('[Mode] All panels hidden');
+      } else {
+        this.audioPanel.show();
+        this.handPanel.show();
+        this.controlsPanel.show();
+        console.log('[Mode] All panels shown');
       }
     });
   }

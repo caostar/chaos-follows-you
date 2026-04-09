@@ -21,7 +21,7 @@ export default class RandomController {
   }
 
   async loadConfig() {
-    const resp = await fetch('/randomControls.json');
+    const resp = await fetch(`${import.meta.env.BASE_URL}randomControls.json`);
     this.config = await resp.json();
     return this.config;
   }
@@ -135,15 +135,29 @@ export default class RandomController {
     const currentScale = window.viewport.lastViewport?.scaleX || 1;
 
     // Decide direction: inBias controls how often it zooms in vs out (0=always out, 1=always in)
-    // Override when near bounds to prevent hitting limits
+    // homeScale: the "comfortable" zoom level to drift back toward
     const inBias = zoom.inBias ?? 0.5;
+    const homeScale = zoom.homeScale ?? 1.0;
+    const homeStrength = zoom.homeStrength ?? 0.3;
+
     let direction;
+    // Hard bounds — override when near absolute limits
     if (currentScale <= zoom.minScale * 1.5) {
       direction = 'in';
     } else if (currentScale >= zoom.maxScale * 0.7) {
       direction = 'out';
     } else {
-      direction = Math.random() < inBias ? 'in' : 'out';
+      // Soft home pull — the further from homeScale, the more we bias toward it
+      const ratio = currentScale / homeScale;
+      let adjustedBias = inBias;
+      if (ratio > 2) {
+        // Too zoomed in → bias toward zooming out
+        adjustedBias = Math.max(0, inBias - homeStrength * Math.log2(ratio));
+      } else if (ratio < 0.5) {
+        // Too zoomed out → bias toward zooming in
+        adjustedBias = Math.min(1, inBias + homeStrength * Math.log2(1 / ratio));
+      }
+      direction = Math.random() < adjustedBias ? 'in' : 'out';
     }
 
     const factor = direction === 'in'
