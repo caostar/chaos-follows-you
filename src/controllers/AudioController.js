@@ -61,7 +61,10 @@ export default class AudioController {
     this._analyzer = null;
     this._micStream = null;
     this._lastReactionTime = 0;
-    this._energyHistory = [];
+    // Circular buffer for energy history (avoids array.shift() which is O(n))
+    this._energyBuf = new Float32Array(300); // Max possible frames
+    this._energyIdx = 0;
+    this._energyCount = 0;
     this._destroyed = false;
   }
 
@@ -161,7 +164,8 @@ export default class AudioController {
 
     this.active = true;
     this._lastReactionTime = 0;
-    this._energyHistory = [];
+    this._energyIdx = 0;
+    this._energyCount = 0;
   }
 
   /**
@@ -248,7 +252,8 @@ export default class AudioController {
 
     this.active = false;
     this.mode = null;
-    this._energyHistory = [];
+    this._energyIdx = 0;
+    this._energyCount = 0;
   }
 
   destroy() {
@@ -326,19 +331,21 @@ export default class AudioController {
       shouldReact = bands.bass > thresholds.bass;
     }
 
-    // Track energy history for sustained zoom
-    this._energyHistory.push(bands.energy);
+    // Track energy in circular buffer (O(1) instead of O(n) with shift)
     const maxHistory = this.config.sustainedZoom.frames;
-    if (this._energyHistory.length > maxHistory) {
-      this._energyHistory.shift();
-    }
+    this._energyBuf[this._energyIdx % maxHistory] = bands.energy;
+    this._energyIdx++;
+    this._energyCount = Math.min(this._energyCount + 1, maxHistory);
 
     // Sustained high energy → zoom
-    if (this.config.sustainedZoom.enabled && this._energyHistory.length >= maxHistory) {
-      const avgEnergy = this._energyHistory.reduce((a, b) => a + b, 0) / this._energyHistory.length;
+    if (this.config.sustainedZoom.enabled && this._energyCount >= maxHistory) {
+      let sum = 0;
+      for (let i = 0; i < maxHistory; i++) sum += this._energyBuf[i];
+      const avgEnergy = sum / maxHistory;
       if (avgEnergy > this.config.sustainedZoom.threshold) {
         this._sustainedZoomIn();
-        this._energyHistory = []; // Reset after zooming
+        this._energyCount = 0; // Reset after zooming
+        this._energyIdx = 0;
       }
     }
 

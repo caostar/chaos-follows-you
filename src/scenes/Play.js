@@ -27,7 +27,7 @@ const oldConfig = {
   blendMode: 'normal',
   frequency: 0.011,
   emitterLifetime: -1,
-  maxParticles: 20000,
+  maxParticles: 5000,
   pos: { x: 0, y: 0 },
   addAtBack: false,
   spawnType: 'circle',
@@ -59,7 +59,16 @@ export default class Play extends Scene {
 
     this.elapsed = Date.now();
     this.emitter.emit = true;
-    this.update();
+    this._lastAutoShape = Date.now();
+    // Bind update once (not per-frame) to avoid garbage generation
+    this._boundUpdate = this.update.bind(this);
+    this._boundUpdate();
+
+    // --- Pre-generate texture pool (async, non-blocking) ---
+    const allTextures = Object.keys(Assets.textures).map((key) =>
+      PIXI.Texture.from(key),
+    );
+    this.pixiChaosStar.buildPool(allTextures, 120);
 
     // --- Random mode setup ---
     this.randomController = new RandomController(this);
@@ -204,6 +213,10 @@ export default class Play extends Scene {
     if (this._randomModeForced) return;
     if (!this.randomController.config?.enabled) return;
 
+    // Don't auto-start random mode if any other mode is active
+    if (this.audioController.active) return;
+    if (this.handController.active) return;
+
     const timeout = (this.randomController.config?.inactivityTimeout || 30) * 1000;
     const idle = Date.now() - this._lastInteraction;
 
@@ -251,6 +264,9 @@ export default class Play extends Scene {
   goZoom(x, y, scale, duration = 2) {
     if (!this.emitter) return;
     scale = this._clampZoom(scale);
+    // Kill existing zoom tweens to prevent stacking/fighting
+    gsap.killTweensOf(viewport.scale);
+    gsap.killTweensOf(viewport.position);
     gsap.to(viewport.scale, { x: scale, y: scale, duration, ease: 'power2.out' });
     gsap.to(viewport.position, { x, y, duration, ease: 'power2.out' });
   }
@@ -277,7 +293,9 @@ export default class Play extends Scene {
     if (x === 0) goX = 0;
     if (y === 0) goY = 0;
 
-    gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration, ease, onComplete: this.completeEmitterTween() });
+    // Kill any existing move tween to prevent stacking
+    gsap.killTweensOf(this.emitter.spawnPos);
+    gsap.to(this.emitter.spawnPos, { x: goX, y: goY, duration, ease });
   }
 
   goArrowMove(dirX, dirY) {
@@ -294,25 +312,34 @@ export default class Play extends Scene {
     }
   }
 
-  completeEmitterTween() {
-    this.emitter.rotate(this.emitter.rotation);
-    gsap.killTweensOf(this.newChaos);
-    gsap.delayedCall(0.5, this.newChaos, [this]);
-  }
-
+  /**
+   * Swap to a new chaos star texture. Uses the pre-generated pool —
+   * no GPU work, instant texture swap.
+   */
   newChaos(_this) {
     _this = _this != null ? _this : this;
-    const newTexture = _this.getRandomPixiCaostarTexture();
-    if (_this._textureBehavior) {
+    const newTexture = _this.pixiChaosStar.getPooledTexture();
+    if (newTexture && _this._textureBehavior) {
       _this._textureBehavior.textures = [newTexture];
+    }
+    // Safety: ensure emitter never stops
+    if (_this.emitter && !_this.emitter.emit) {
+      _this.emitter.emit = true;
     }
   }
 
   update() {
-    requestAnimationFrame(this.update.bind(this));
+    requestAnimationFrame(this._boundUpdate);
     const now = Date.now();
     this.emitter.update((now - this.elapsed) * 0.001);
     this.elapsed = now;
+
+    // Auto-swap shape every ~3 seconds to keep visuals fresh,
+    // regardless of which modes are active. Uses the pool so it's free.
+    if (now - this._lastAutoShape > 3000) {
+      this._lastAutoShape = now;
+      this.newChaos(this);
+    }
   }
 
   getRandomTexture() {
