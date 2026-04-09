@@ -415,6 +415,88 @@ export default class AudioPanel {
         line-height: 1.6; padding-top: 6px;
         border-top: 1px solid rgba(255,255,255,0.06);
       }
+
+      /* --- Mobile responsive --- */
+      @media (max-width: 600px) {
+        .cp-panel {
+          left: 8px;
+          font-size: 14px;
+          border-radius: 10px;
+        }
+        #audio-panel { top: 8px; }
+        .cp-tab {
+          padding: 12px 16px;
+          gap: 10px;
+        }
+        .cp-tab-label {
+          font-size: 20px;
+        }
+        .cp-tab-status {
+          font-size: 14px;
+        }
+        .cp-body {
+          padding: 12px 16px;
+          width: calc(100vw - 40px);
+          max-width: 340px;
+        }
+        .cp-btn {
+          padding: 10px 16px;
+          font-size: 14px;
+          border-radius: 8px;
+        }
+        .cp-btn-stop, .cp-btn-start {
+          padding: 12px 16px;
+          font-size: 15px;
+        }
+        .cp-input {
+          padding: 8px 10px;
+          font-size: 14px;
+          border-radius: 6px;
+        }
+        .ap-row {
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+        .ap-stream-select {
+          padding: 8px 10px;
+          font-size: 13px;
+          border-radius: 6px;
+        }
+        .ap-filename {
+          font-size: 12px;
+          max-width: 160px;
+        }
+        .ap-energy {
+          height: 6px;
+          margin: 14px 0 10px;
+        }
+        .ap-bands {
+          height: 50px;
+          gap: 6px;
+        }
+        .ap-band span {
+          font-size: 10px;
+        }
+        .hp-row { margin-bottom: 10px; }
+        .hp-gesture {
+          margin: 12px 0 10px;
+          padding: 8px 0;
+        }
+        .hp-gesture-label { font-size: 13px; }
+        .hp-gesture-value { font-size: 15px; }
+        .hp-help {
+          font-size: 13px;
+          line-height: 1.8;
+          padding-top: 8px;
+        }
+      }
+
+      @media (max-width: 600px) and (max-height: 700px) {
+        /* Small phone landscape — keep panels compact */
+        .cp-body {
+          max-width: 280px;
+        }
+      }
     `;
     document.head.appendChild(style);
   }

@@ -111,32 +111,61 @@ export default class ControlsPanel {
     `;
     document.body.appendChild(this._tooltip);
 
-    // Delegate hover events for all .cs-info elements
-    panel.addEventListener('mouseover', (e) => {
-      const info = e.target.closest('.cs-info');
-      if (!info) return;
+    // Delegate hover/touch events for all .cs-info tooltip icons
+    const showTip = (info) => {
       const tip = info.getAttribute('data-tip');
       if (!tip) return;
       const rect = info.getBoundingClientRect();
       this._tooltip.textContent = tip;
       this._tooltip.style.display = 'block';
-      // Position to the right of the icon, or left if near right edge
-      let left = rect.right + 8;
-      if (left + 230 > window.innerWidth) {
-        left = rect.left - 230;
+
+      const isMobile = window.innerWidth <= 600;
+      if (isMobile) {
+        // On mobile, show below the icon, centered on screen
+        this._tooltip.style.left = '20px';
+        this._tooltip.style.right = '20px';
+        this._tooltip.style.maxWidth = 'calc(100vw - 40px)';
+        this._tooltip.style.top = `${rect.bottom + 8}px`;
+      } else {
+        this._tooltip.style.right = 'auto';
+        this._tooltip.style.maxWidth = '220px';
+        let left = rect.right + 8;
+        if (left + 230 > window.innerWidth) {
+          left = rect.left - 230;
+        }
+        let top = rect.top - 4;
+        if (top + 80 > window.innerHeight) {
+          top = window.innerHeight - 80;
+        }
+        this._tooltip.style.left = `${left}px`;
+        this._tooltip.style.top = `${top}px`;
       }
-      let top = rect.top - 4;
-      if (top + 80 > window.innerHeight) {
-        top = window.innerHeight - 80;
-      }
-      this._tooltip.style.left = `${left}px`;
-      this._tooltip.style.top = `${top}px`;
+    };
+
+    const hideTip = () => { this._tooltip.style.display = 'none'; };
+
+    // Mouse hover
+    panel.addEventListener('mouseover', (e) => {
+      const info = e.target.closest('.cs-info');
+      if (info) showTip(info);
     });
     panel.addEventListener('mouseout', (e) => {
-      if (e.target.closest('.cs-info')) {
-        this._tooltip.style.display = 'none';
-      }
+      if (e.target.closest('.cs-info')) hideTip();
     });
+
+    // Touch tap (mobile)
+    panel.addEventListener('touchstart', (e) => {
+      const info = e.target.closest('.cs-info');
+      if (info) {
+        e.preventDefault();
+        showTip(info);
+        // Auto-hide after 3 seconds on mobile
+        clearTimeout(this._tipTimer);
+        this._tipTimer = setTimeout(hideTip, 3000);
+      } else {
+        hideTip();
+      }
+    }, { passive: false });
 
     // Build all tab contents
     this._buildTab('random', RANDOM_SCHEMA, this.controllers.random.config);
@@ -549,6 +578,103 @@ export default class ControlsPanel {
       }
       .ctrl-key-row span {
         color: #aaa;
+      }
+
+      /* --- Mobile responsive --- */
+      @media (max-width: 600px) {
+        #controls-panel {
+          max-height: calc(100vh - 80px);
+        }
+        #controls-panel .cp-body {
+          max-height: calc(100vh - 130px);
+        }
+        .ctrl-tabs {
+          gap: 4px;
+          margin-bottom: 10px;
+        }
+        .ctrl-tab {
+          padding: 8px 6px;
+          font-size: 13px;
+          border-radius: 6px;
+        }
+        .ctrl-preset-bar {
+          gap: 6px;
+          margin-bottom: 12px;
+        }
+        .ctrl-preset-select {
+          padding: 8px 10px;
+          font-size: 13px;
+          border-radius: 6px;
+        }
+        .ctrl-preset-btn {
+          padding: 6px 10px;
+          font-size: 16px;
+          border-radius: 6px;
+        }
+        .cs-row {
+          gap: 4px;
+          margin-bottom: 12px;
+        }
+        .cs-label {
+          font-size: 13px;
+          gap: 6px;
+        }
+        .cs-info {
+          width: 20px;
+          height: 20px;
+          font-size: 11px;
+        }
+        .cs-slider-wrap {
+          gap: 10px;
+        }
+        .cs-slider {
+          height: 8px;
+          border-radius: 4px;
+        }
+        .cs-slider::-webkit-slider-thumb {
+          width: 22px;
+          height: 22px;
+        }
+        .cs-val {
+          font-size: 13px;
+          min-width: 40px;
+        }
+        .cs-number {
+          width: 100px;
+          padding: 8px 10px;
+          font-size: 14px;
+          border-radius: 6px;
+        }
+        .cs-toggle-indicator {
+          width: 40px;
+          height: 22px;
+          border-radius: 11px;
+        }
+        .cs-toggle-indicator::after {
+          top: 3px;
+          left: 3px;
+          width: 16px;
+          height: 16px;
+        }
+        .cs-toggle:checked + .cs-toggle-indicator::after {
+          left: 21px;
+        }
+        .ctrl-keys {
+          gap: 8px;
+        }
+        .ctrl-key-row {
+          font-size: 13px;
+          gap: 10px;
+        }
+        .ctrl-key-row kbd {
+          padding: 4px 10px;
+          font-size: 13px;
+          min-width: 60px;
+          border-radius: 6px;
+        }
+        .ctrl-key-row span {
+          font-size: 13px;
+        }
       }
     `;
     document.head.appendChild(style);
