@@ -47,6 +47,10 @@ export default class GameApplication extends Application {
     });
     document.body.appendChild(this.view);
 
+    // Suppress "Setting interactive is deprecated" warning from pixi-viewport.
+    // pixi-viewport 5.0.1 sets .interactive internally; override with the v7 API.
+    viewport.eventMode = 'static';
+
     this.stage.addChild(viewport);
 
     if (!this.isTouchDevice()) viewport.drag();
