@@ -6,13 +6,13 @@
  * content-type and doesn't require authentication or CORS proxying.
  */
 const RADIO_STREAMS = [
-  // South America
-  { url: 'https://icecast2.ufpel.edu.br/live', label: '🇧🇷 Brazil — UFPel Radio (Pop/Eclectic)' },
-
   // North America — SomaFM (San Francisco, donation-supported, no ads)
+  { url: 'https://ice1.somafm.com/defcon-256-mp3', label: '🇺🇸 USA — DEF CON (Dark Electronic)' },
   { url: 'https://ice1.somafm.com/groovesalad-256-mp3', label: '🇺🇸 USA — Groove Salad (Ambient/Downtempo)' },
   { url: 'https://ice1.somafm.com/dronezone-256-mp3', label: '🇺🇸 USA — Drone Zone (Space Ambient)' },
-  { url: 'https://ice1.somafm.com/defcon-256-mp3', label: '🇺🇸 USA — DEF CON (Dark Electronic)' },
+
+  // South America
+  { url: 'https://icecast2.ufpel.edu.br/live', label: '🇧🇷 Brazil — UFPel Radio (Pop/Eclectic)' },
   { url: 'https://ice1.somafm.com/deepspaceone-128-mp3', label: '🇺🇸 USA — Deep Space One (Deep House)' },
   { url: 'https://ice1.somafm.com/seventies-320-mp3', label: '🇺🇸 USA — Left Coast 70s (Classic Rock)' },
   { url: 'https://ice1.somafm.com/lush-128-mp3', label: '🇺🇸 USA — Lush (Sensual Downtempo)' },

@@ -120,8 +120,8 @@ describe('AudioController', () => {
 
   it('loads default config when audioControls.json is missing', async () => {
     await controller.loadConfig();
-    expect(controller.config.defaultStream).toBe('https://icecast2.ufpel.edu.br/live');
-    expect(controller.config.thresholds.bass).toBe(0.63);
+    expect(controller.config.defaultStream).toBe('https://ice1.somafm.com/defcon-256-mp3');
+    expect(controller.config.thresholds.bass).toBe(0.5);
   });
 
   it('loads custom config from audioControls.json', async () => {
@@ -134,7 +134,7 @@ describe('AudioController', () => {
     await controller.loadConfig();
     expect(controller.config.thresholds.bass).toBe(0.5);
     // Other defaults should remain
-    expect(controller.config.defaultStream).toBe('https://icecast2.ufpel.edu.br/live');
+    expect(controller.config.defaultStream).toBe('https://ice1.somafm.com/defcon-256-mp3');
   });
 
   describe('start/stop', () => {

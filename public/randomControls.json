@@ -7,8 +7,8 @@
 
   "zoom": {
     "_comment": "Absolute scale bounds to prevent scene disappearing or exploding",
-    "minScale": 0.05,
-    "maxScale": 50,
+    "minScale": 0.02,
+    "maxScale": 10,
     "inFactor": { "min": 1.2, "max": 3.0 },
     "outFactor": { "min": 1.2, "max": 3.0 },
     "inBias": 0.58,

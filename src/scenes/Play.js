@@ -11,6 +11,7 @@ import AudioPanel from '../ui/AudioPanel';
 import HandController from '../controllers/HandController';
 import HandPanel from '../ui/HandPanel';
 import ControlsPanel from '../ui/ControlsPanel';
+import WelcomeModal from '../ui/WelcomeModal';
 
 // Old v4 config (without textures — we inject those at runtime)
 const oldConfig = {
@@ -92,6 +93,50 @@ export default class Play extends Scene {
       random: this.randomController,
       audio: this.audioController,
       hand: this.handController,
+    });
+
+    // --- "Know more" link ---
+    this._knowMoreLink = document.createElement('a');
+    this._knowMoreLink.id = 'know-more-link';
+    this._knowMoreLink.href = 'https://caostar.com/thoughts/chaos-follows-you/2026/04/';
+    this._knowMoreLink.target = '_blank';
+    this._knowMoreLink.rel = 'noopener';
+    this._knowMoreLink.textContent = 'Know more';
+    this._knowMoreLink.style.cssText = `
+      position: fixed; bottom: 12px; right: 16px;
+      color: rgba(255,255,255,0.35); font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 11px; text-decoration: none; z-index: 10000;
+      transition: color 0.2s;
+    `;
+    this._knowMoreLink.addEventListener('mouseenter', () => { this._knowMoreLink.style.color = 'rgba(79,195,247,0.8)'; });
+    this._knowMoreLink.addEventListener('mouseleave', () => { this._knowMoreLink.style.color = 'rgba(255,255,255,0.35)'; });
+    document.body.appendChild(this._knowMoreLink);
+
+    // --- Welcome modal ---
+    this._welcome = new WelcomeModal({
+      onStream: () => {
+        this.audioPanel.show();
+        this.audioPanel._toggleExpanded();
+        this.audioController.start('stream');
+        this.audioPanel._updateStatus('stream');
+      },
+      onHand: async () => {
+        this.handPanel.show();
+        this.handPanel._toggleExpanded();
+        try {
+          await this.handController.start();
+          this.handPanel._updateStatus('tracking');
+          this.handPanel._startBtn.textContent = '⏹ Stop Tracking';
+          this.handPanel._debugBtn.disabled = false;
+        } catch (err) {
+          console.error('[Welcome] Hand tracking failed:', err);
+        }
+      },
+      onRandom: () => {
+        this._randomModeForced = true;
+        this.randomController.start();
+        console.log('[Mode] Random mode toggled ON (welcome)');
+      },
     });
 
     // --- Input setup ---
@@ -194,6 +239,8 @@ export default class Play extends Scene {
         // Hide hand debug expand button
         const expandBtn = document.getElementById('hand-debug-expand');
         if (expandBtn) expandBtn.style.display = 'none';
+        // Hide "Know more" link
+        if (this._knowMoreLink) this._knowMoreLink.style.display = 'none';
         // Hide cursor
         document.body.style.cursor = 'none';
         console.log('[Mode] All UI hidden');
@@ -204,6 +251,8 @@ export default class Play extends Scene {
         // Restore hand debug expand button if debug is active
         const expandBtn = document.getElementById('hand-debug-expand');
         if (expandBtn && this.handController._debugVisible) expandBtn.style.display = 'block';
+        // Restore "Know more" link
+        if (this._knowMoreLink) this._knowMoreLink.style.display = '';
         // Restore cursor
         document.body.style.cursor = '';
         console.log('[Mode] All UI shown');

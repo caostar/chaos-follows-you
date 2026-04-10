@@ -1,8 +1,8 @@
 {
-  "defaultStream": "https://icecast2.ufpel.edu.br/live",
-  "thresholds": { "bass": 0.3, "mid": 0.4, "treble": 0.5, "micEnergy": 0.05 },
-  "actions": { "move": { "weight": 70 }, "shapeChange": { "weight": 25 }, "zoomIn": { "weight": 3 }, "zoomOut": { "weight": 2 } },
-  "reactionCooldown": 200,
-  "bassMoveFactor": 0.2,
-  "sustainedZoom": { "enabled": true, "frames": 120, "threshold": 0.3, "zoomFactor": 1.1, "duration": 5.0 }
+  "defaultStream": "https://ice1.somafm.com/defcon-256-mp3",
+  "thresholds": { "bass": 0.5, "mid": 0.6, "treble": 0.7, "micEnergy": 0.05 },
+  "actions": { "move": { "weight": 60 }, "shapeChange": { "weight": 30 }, "zoomIn": { "weight": 5 }, "zoomOut": { "weight": 5 } },
+  "reactionCooldown": 300,
+  "bassMoveFactor": 0.3,
+  "sustainedZoom": { "enabled": false }
 }

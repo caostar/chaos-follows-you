@@ -14,38 +14,32 @@
 import AudioMotionAnalyzer from 'audiomotion-analyzer';
 
 const DEFAULT_CONFIG = {
-  defaultStream: 'https://icecast2.ufpel.edu.br/live',
+  // "Gentle pulse" preset — calm, balanced response
+  defaultStream: 'https://ice1.somafm.com/defcon-256-mp3',
   thresholds: {
-    // For stream/file mode, bass drives the main reaction
-    bass: 0.63,
-    mid: 0.7,
-    treble: 0.8,
-    // For mic mode, overall energy is more useful (mic is noisy)
-    micEnergy: 0.1,
+    bass: 0.5,
+    mid: 0.6,
+    treble: 0.7,
+    micEnergy: 0.05,
   },
   actions: {
-    // What happens when audio threshold is crossed
-    move: { weight: 50 },        // move emitter
-    shapeChange: { weight: 40 }, // new chaos star
-    zoomIn: { weight: 5 },      // zoom in
-    zoomOut: { weight: 5 },     // zoom out
+    move: { weight: 60 },
+    shapeChange: { weight: 30 },
+    zoomIn: { weight: 5 },
+    zoomOut: { weight: 5 },
   },
-  // Minimum ms between visual reactions (prevents seizure-speed flickering)
-  reactionCooldown: 80,
-  // How much bass amplitude influences move distance (0-1)
-  bassMoveFactor: 0.5,
-  // Sustained energy zoom: if average energy stays high for N frames, zoom in
+  reactionCooldown: 300,
+  bassMoveFactor: 0.3,
   sustainedZoom: {
-    enabled: true,
-    frames: 60,        // ~1 second of sustained energy
-    threshold: 0.5,    // average energy above this triggers zoom
+    enabled: false,
+    frames: 60,
+    threshold: 0.5,
     zoomFactor: 1.3,
     duration: 3.0,
   },
-  // Zoom bounds — prevents runaway zoom from audio reactions
   zoom: {
-    minScale: 0.1,
-    maxScale: 15,
+    minScale: 0.03,
+    maxScale: 8,
     homeScale: 1.0,
   },
 };
@@ -337,15 +331,25 @@ export default class AudioController {
     this._energyIdx++;
     this._energyCount = Math.min(this._energyCount + 1, maxHistory);
 
-    // Sustained high energy → zoom
+    // Sustained energy → zoom in or out
     if (this.config.sustainedZoom.enabled && this._energyCount >= maxHistory) {
       let sum = 0;
       for (let i = 0; i < maxHistory; i++) sum += this._energyBuf[i];
       const avgEnergy = sum / maxHistory;
+
       if (avgEnergy > this.config.sustainedZoom.threshold) {
-        this._sustainedZoomIn();
-        this._energyCount = 0; // Reset after zooming
+        this._sustainedZoom('in');
+        this._energyCount = 0;
         this._energyIdx = 0;
+      } else if (avgEnergy < this.config.sustainedZoom.threshold * 0.3) {
+        // Quiet passage → zoom back out toward home scale
+        const currentScale = window.viewport?.lastViewport?.scaleX || 1;
+        const homeScale = this.config.zoom?.homeScale ?? 1.0;
+        if (currentScale > homeScale * 1.5) {
+          this._sustainedZoom('out');
+          this._energyCount = 0;
+          this._energyIdx = 0;
+        }
       }
     }
 
@@ -374,9 +378,22 @@ export default class AudioController {
       candidates.find((c) => c.type === 'shapeChange').weight *= 2;
     }
 
-    // Treble boosts zoom
+    // Treble boosts zoom (both directions equally — no zoom-in bias)
     if (bands.treble > (this.config.thresholds.treble || 0.8)) {
-      candidates.find((c) => c.type === 'zoomIn').weight *= 3;
+      candidates.find((c) => c.type === 'zoomIn').weight *= 2;
+      candidates.find((c) => c.type === 'zoomOut').weight *= 2;
+    }
+
+    // Home-scale correction: when drifted far from home, bias toward corrective direction
+    const currentScale = window.viewport?.lastViewport?.scaleX || 1;
+    const homeScale = this.config.zoom?.homeScale ?? 1.0;
+    const ratio = currentScale / homeScale;
+    if (ratio > 3) {
+      // Too zoomed in — boost zoom-out
+      candidates.find((c) => c.type === 'zoomOut').weight *= (1 + Math.log2(ratio));
+    } else if (ratio < 0.3) {
+      // Too zoomed out — boost zoom-in
+      candidates.find((c) => c.type === 'zoomIn').weight *= (1 + Math.log2(1 / ratio));
     }
 
     const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
@@ -428,11 +445,11 @@ export default class AudioController {
     const currentScale = window.viewport?.lastViewport?.scaleX || 1;
     const { zoom } = this.config;
 
-    // If too zoomed in, force zoom out. If too zoomed out, force zoom in.
+    // Force corrective direction when far from home scale
     const homeScale = zoom.homeScale ?? 1.0;
-    if (direction === 'in' && currentScale > homeScale * 10) {
+    if (direction === 'in' && currentScale > homeScale * 4) {
       direction = 'out';
-    } else if (direction === 'out' && currentScale < homeScale * 0.1) {
+    } else if (direction === 'out' && currentScale < homeScale * 0.15) {
       direction = 'in';
     }
 
@@ -458,15 +475,21 @@ export default class AudioController {
     this.play.goZoom(viewX, viewY, targetScale, 2);
   }
 
-  _sustainedZoomIn() {
+  _sustainedZoom(direction) {
     const { sustainedZoom, zoom } = this.config;
     const currentScale = window.viewport?.lastViewport?.scaleX || 1;
-
-    // Don't sustain-zoom if already very zoomed in
     const homeScale = zoom.homeScale ?? 1.0;
-    if (currentScale > homeScale * 8) return;
 
-    const targetScale = this._clampScale(currentScale * sustainedZoom.zoomFactor);
+    // Don't zoom further if already far in that direction
+    if (direction === 'in' && currentScale > homeScale * 5) return;
+    if (direction === 'out' && currentScale < homeScale * 0.3) return;
+
+    let targetScale;
+    if (direction === 'in') {
+      targetScale = this._clampScale(currentScale * sustainedZoom.zoomFactor);
+    } else {
+      targetScale = this._clampScale(currentScale / sustainedZoom.zoomFactor);
+    }
 
     const spawnX = this.play.emitter.spawnPos.x;
     const spawnY = this.play.emitter.spawnPos.y;
